@@ -41,10 +41,9 @@ func (h *Handler) UsersMeGet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := map[string]any{
-		"user": me,
-		"role": role,
+		"owner": me,
+		"role":  role,
 	}
-
 	WriteJSON(w, http.StatusOK, response)
 }
 
@@ -116,6 +115,7 @@ func (h *Handler) UsersMeAvatar(w http.ResponseWriter, r *http.Request) {
 		h.writeError(w, http.StatusBadRequest, "Read failed")
 		return
 	}
+
 	if int64(len(b)) > 4*1024*1024 {
 		h.writeError(w, http.StatusBadRequest, "File too large")
 		return
