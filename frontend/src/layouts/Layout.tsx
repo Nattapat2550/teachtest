@@ -101,7 +101,7 @@ export default function Layout() {
                 <div className="p-2 bg-brand/10 rounded-xl mr-3 group-hover:scale-105 transition-transform">
                   <img src={logoImg} alt="Logo" className="w-8 h-8 object-contain" />
                 </div>
-                <span className="text-2xl font-black tracking-tight bg-clip-text text-transparent bg-linear-to-r from-brand to-purple-600">Mall</span>
+                <span className="text-2xl font-black tracking-tight bg-clip-text text-transparent bg-linear-to-r from-brand to-purple-600">TeachTest</span>
               </Link>
               
               <div className="hidden lg:flex items-center space-x-8 text-base">
@@ -203,9 +203,9 @@ export default function Layout() {
       <footer className="bg-bg-card border-t border-outline text-text-sub text-center py-8 mt-auto transition-colors">
         <div className="flex justify-center items-center gap-2 mb-2">
           <img src={logoImg} alt="Logo" className="w-5 h-5 opacity-50 grayscale" />
-          <span className="font-bold tracking-wider">Mall Platform</span>
+          <span className="font-bold tracking-wider">TeachTest Platform</span>
         </div>
-        <p className="text-sm font-medium">&copy; 2026 Mall Platform. All rights reserved.</p>
+        <p className="text-sm font-medium">&copy; {new Date().getFullYear()} TeachTest Platform. All rights reserved.</p>
       </footer>
     </div>
   );

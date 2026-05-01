@@ -32,7 +32,9 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = 'https://gtymalltestbe.onrender.com/api/auth/google';
+    // ดึง URL จาก .env หรือใช้ default
+    const apiUrl = import.meta.env.VITE_API_URL || 'https://teachtestbe.onrender.com';
+    window.location.href = `${apiUrl}/api/auth/google`;
   };
 
   return (

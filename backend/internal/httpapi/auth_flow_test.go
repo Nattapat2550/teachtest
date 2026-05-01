@@ -16,14 +16,10 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// ==========================================
-// 🛠 Helpers
-// ==========================================
-
 func generateTestToken(userID int64, role string, secret string) string {
 	claims := jwt.MapClaims{
-		"id":      userID,         
-		"user_id": "test-user-id", 
+		"id":      userID,
+		"user_id": "test-user-id",
 		"role":    role,
 		"exp":     time.Now().Add(1 * time.Hour).Unix(),
 	}
@@ -35,7 +31,7 @@ func generateTestToken(userID int64, role string, secret string) string {
 func TestComprehensiveSystem(t *testing.T) {
 	jwtSecret := "supersecret_test_jwt_key_123456"
 
-	// 🛑 1. Mock Pure API Server
+	// 1. Mock Pure API Server
 	pureMock := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
 		w.Header().Set("Content-Type", "application/json")
@@ -54,19 +50,16 @@ func TestComprehensiveSystem(t *testing.T) {
 		case strings.Contains(path, "find-user"):
 			var body map[string]any
 			json.NewDecoder(r.Body).Decode(&body)
-			
 			if email, ok := body["email"].(string); ok && (email == "notfound@example.com" || email == "new@example.com") {
 				w.WriteHeader(http.StatusNotFound)
 				w.Write([]byte(`{"error": {"message": "User not found"}}`))
 				return
 			}
-			
 			hash, _ := bcrypt.GenerateFromPassword([]byte("Password123!"), bcrypt.DefaultCost)
 			json.NewEncoder(w).Encode(map[string]any{
-				"id": 1, "email": "test@example.com", "username": "Tester",
-				"role": "user", "password_hash": string(hash),
+				"id": 1, "email": "test@example.com", "username": "Tester", "role": "user",
+				"password_hash": string(hash),
 			})
-
 		case strings.Contains(path, "delete-user"):
 			w.Write([]byte(`{"ok": true}`))
 		case strings.Contains(path, "admin/users/update"):
@@ -81,25 +74,23 @@ func TestComprehensiveSystem(t *testing.T) {
 			w.Write([]byte(`[{"section_name": "welcome_header", "content": "Hello"}]`))
 		case strings.Contains(path, "homepage/update"):
 			w.Write([]byte(`{"ok": true}`))
-
 		default:
 			w.Write([]byte(`{"ok": true}`))
 		}
 	}))
 	defer pureMock.Close()
 
-	// 🛑 2. Mock Database (แก้ปัญหา Panic)
+	// 2. Mock Database
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
 	if err != nil {
 		t.Fatalf("Failed to open mock db: %v", err)
 	}
 	defer db.Close()
 
-	// จำลองให้ฐานข้อมูลคืนค่า 1 row กลับไปเสมอเมื่อมีการ Query ป้องกัน error แจ้งเตือนจาก SQLMock
 	mock.ExpectQuery(".*").WillReturnRows(sqlmock.NewRows([]string{"role"}).AddRow("admin"))
 	mock.ExpectQuery(".*").WillReturnRows(sqlmock.NewRows([]string{"role"}).AddRow("admin"))
 
-	// 🛑 3. Config & Router
+	// 3. Config & Router
 	cfg := config.Config{
 		PureAPIBaseURL:     pureMock.URL,
 		EmailDisable:       true,
@@ -109,9 +100,8 @@ func TestComprehensiveSystem(t *testing.T) {
 		GoogleClientSecret: "mock-secret",
 		GoogleCallbackURI:  "http://localhost:3000/callback",
 	}
-	
-	// เปลี่ยนจาก nil เป็นตัวแปร db ที่เรา mock เอาไว้
-	router := httpapi.NewRouter(cfg, db) 
+
+	router := httpapi.NewRouter(cfg, db)
 
 	execute := func(req *http.Request) *httptest.ResponseRecorder {
 		rr := httptest.NewRecorder()
@@ -128,50 +118,66 @@ func TestComprehensiveSystem(t *testing.T) {
 	t.Run("AUTH: Register Success", func(t *testing.T) {
 		req, _ := http.NewRequest("POST", "/api/auth/register", strings.NewReader(`{"email": "new@example.com"}`))
 		rr := execute(req)
-		if rr.Code != http.StatusOK { t.Errorf("Expected 200, got %d", rr.Code) }
+		if rr.Code != http.StatusOK {
+			t.Errorf("Expected 200, got %d", rr.Code)
+		}
 	})
 
 	t.Run("AUTH: Complete Profile", func(t *testing.T) {
 		payload := `{"email": "test@example.com", "username": "TestUser", "password": "Password123!", "first_name": "Test", "last_name": "User", "tel": "0899999999"}`
 		req, _ := http.NewRequest("POST", "/api/auth/complete-profile", strings.NewReader(payload))
 		rr := execute(req)
-		if rr.Code != http.StatusOK { t.Errorf("Expected 200, got %d", rr.Code) }
+		if rr.Code != http.StatusOK {
+			t.Errorf("Expected 200, got %d", rr.Code)
+		}
 	})
 
 	t.Run("AUTH: Forgot Password", func(t *testing.T) {
 		req, _ := http.NewRequest("POST", "/api/auth/forgot-password", strings.NewReader(`{"email": "test@example.com"}`))
 		rr := execute(req)
-		if rr.Code != http.StatusOK { t.Errorf("Expected 200, got %d", rr.Code) }
+		if rr.Code != http.StatusOK {
+			t.Errorf("Expected 200, got %d", rr.Code)
+		}
 	})
 
 	t.Run("AUTH: Reset Password", func(t *testing.T) {
 		req, _ := http.NewRequest("POST", "/api/auth/reset-password", strings.NewReader(`{"token": "mocktoken", "newPassword": "NewPassword123!"}`))
 		rr := execute(req)
-		if rr.Code != http.StatusOK { t.Errorf("Expected 200, got %d", rr.Code) }
+		if rr.Code != http.StatusOK {
+			t.Errorf("Expected 200, got %d", rr.Code)
+		}
 	})
 
 	t.Run("AUTH: Google OAuth URL", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/api/auth/google", nil)
 		rr := execute(req)
-		if rr.Code != http.StatusFound { t.Errorf("Expected Redirect 302, got %d", rr.Code) }
+		if rr.Code != http.StatusFound {
+			t.Errorf("Expected Redirect 302, got %d", rr.Code)
+		}
 	})
 
 	t.Run("LOGIN: Success", func(t *testing.T) {
 		req, _ := http.NewRequest("POST", "/api/auth/login", strings.NewReader(`{"email": "test@example.com", "password": "Password123!"}`))
 		rr := execute(req)
-		if rr.Code != http.StatusOK { t.Errorf("Expected 200, got %d", rr.Code) }
+		if rr.Code != http.StatusOK {
+			t.Errorf("Expected 200, got %d", rr.Code)
+		}
 	})
 
 	t.Run("LOGIN: Fail Wrong Password", func(t *testing.T) {
 		req, _ := http.NewRequest("POST", "/api/auth/login", strings.NewReader(`{"email": "test@example.com", "password": "WrongPassword!"}`))
 		rr := execute(req)
-		if rr.Code != http.StatusUnauthorized { t.Errorf("Expected 401, got %d", rr.Code) }
+		if rr.Code != http.StatusUnauthorized {
+			t.Errorf("Expected 401, got %d", rr.Code)
+		}
 	})
 
 	t.Run("LOGIN: Fail Not Found Email", func(t *testing.T) {
 		req, _ := http.NewRequest("POST", "/api/auth/login", strings.NewReader(`{"email": "notfound@example.com", "password": "Password123!"}`))
 		rr := execute(req)
-		if rr.Code != http.StatusUnauthorized { t.Errorf("Expected 401, got %d", rr.Code) }
+		if rr.Code != http.StatusUnauthorized {
+			t.Errorf("Expected 401, got %d", rr.Code)
+		}
 	})
 
 	// ==========================================
@@ -181,13 +187,17 @@ func TestComprehensiveSystem(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/api/users/me", nil)
 		req.Header.Set("Authorization", "Bearer "+userToken)
 		rr := execute(req)
-		if rr.Code != http.StatusOK { t.Errorf("Expected 200, got %d", rr.Code) }
+		if rr.Code != http.StatusOK {
+			t.Errorf("Expected 200, got %d", rr.Code)
+		}
 	})
-	
+
 	t.Run("ADMIN: List Users", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/api/admin/users", nil)
 		req.Header.Set("Authorization", "Bearer "+adminToken)
 		rr := execute(req)
-		if rr.Code != http.StatusOK { t.Errorf("Expected 200, got %d", rr.Code) }
+		if rr.Code != http.StatusOK {
+			t.Errorf("Expected 200, got %d", rr.Code)
+		}
 	})
 }

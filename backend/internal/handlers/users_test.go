@@ -19,8 +19,6 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 )
 
-// --- HELPER FUNCTIONS ---
-
 func newMockPureAPI(handler http.HandlerFunc) (*httptest.Server, *pureapi.Client) {
 	ts := httptest.NewServer(handler)
 	client := pureapi.NewClient(ts.URL, "dummy-key")
@@ -35,8 +33,6 @@ func setupAuthRequest(method, url string, body io.Reader, user *AuthUser) *http.
 	}
 	return req
 }
-
-// --- UNIT TESTS ---
 
 func TestUsersMeGet(t *testing.T) {
 	db, mock, err := sqlmock.New()
@@ -78,7 +74,6 @@ func TestUsersMeGet(t *testing.T) {
 					WithArgs("U123").
 					WillReturnError(sql.ErrConnDone)
 			},
-			// เมื่อ DB ดึง Role พลาด ระบบจะให้เป็น "customer" และคืน Status 200 เหมือนเดิม
 			expectedStatus: http.StatusOK,
 		},
 		{
@@ -93,7 +88,6 @@ func TestUsersMeGet(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.setupMockDB()
-
 			var pureClient *pureapi.Client
 			if tt.mockAPIHandler != nil {
 				ts, client := newMockPureAPI(tt.mockAPIHandler)
@@ -102,15 +96,12 @@ func TestUsersMeGet(t *testing.T) {
 			} else {
 				pureClient = pureapi.NewClient("http://dummy", "dummy")
 			}
-
 			h := &Handler{
-				MallDB: db,
-				Pure:   pureClient,
+				TeachDB: db,
+				Pure:    pureClient,
 			}
-
 			req := setupAuthRequest("GET", "/api/users/me", nil, tt.user)
 			rr := httptest.NewRecorder()
-
 			h.UsersMeGet(rr, req)
 
 			if rr.Code != tt.expectedStatus {
@@ -129,8 +120,8 @@ func TestUsersMePut(t *testing.T) {
 		expectedStatus int
 	}{
 		{
-			name: "Success Update Profile",
-			user: &AuthUser{ID: 1},
+			name:    "Success Update Profile",
+			user:    &AuthUser{ID: 1},
 			payload: map[string]any{"first_name": "Updated"},
 			mockAPIHandler: func(w http.ResponseWriter, r *http.Request) {
 				json.NewEncoder(w).Encode(map[string]any{"id": 1, "first_name": "Updated"})
@@ -145,8 +136,8 @@ func TestUsersMePut(t *testing.T) {
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
-			name: "Pure API Failure",
-			user: &AuthUser{ID: 1},
+			name:    "Pure API Failure",
+			user:    &AuthUser{ID: 1},
 			payload: map[string]any{"first_name": "Updated"},
 			mockAPIHandler: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusInternalServerError)
@@ -165,20 +156,16 @@ func TestUsersMePut(t *testing.T) {
 			} else {
 				pureClient = pureapi.NewClient("http://dummy", "dummy")
 			}
-
 			h := &Handler{Pure: pureClient}
-
 			var body []byte
 			if tt.payload != nil {
 				body, _ = json.Marshal(tt.payload)
 			} else {
 				body = []byte(`{invalid json`)
 			}
-
 			req := setupAuthRequest("PUT", "/api/users/me", bytes.NewBuffer(body), tt.user)
 			req.Header.Set("Content-Type", "application/json")
 			rr := httptest.NewRecorder()
-
 			h.UsersMePut(rr, req)
 
 			if rr.Code != tt.expectedStatus {
@@ -197,24 +184,19 @@ func TestUsersMeAvatar(t *testing.T) {
 			})
 		})
 		defer ts.Close()
-
 		h := &Handler{Pure: client}
 
 		body := new(bytes.Buffer)
 		writer := multipart.NewWriter(body)
-		
-		// เพิ่ม Header บังคับให้เป็นไฟล์รูปภาพเพื่อให้ผ่านการตรวจสอบ allowedImageMime()
 		mh := make(textproto.MIMEHeader)
 		mh.Set("Content-Disposition", `form-data; name="avatar"; filename="test.png"`)
 		mh.Set("Content-Type", "image/png")
 		part, _ := writer.CreatePart(mh)
-		
 		part.Write([]byte("dummy image data"))
 		writer.Close()
 
 		req := setupAuthRequest("POST", "/api/users/me/avatar", body, &AuthUser{ID: 1})
 		req.Header.Set("Content-Type", writer.FormDataContentType())
-
 		rr := httptest.NewRecorder()
 		h.UsersMeAvatar(rr, req)
 
@@ -229,8 +211,6 @@ func TestUsersMeAvatar(t *testing.T) {
 
 		body := new(bytes.Buffer)
 		writer := multipart.NewWriter(body)
-		
-		// ไฟล์นี้จะหลุดเรื่อง Content-Type ไปทำให้กลายเป็น 400
 		mh := make(textproto.MIMEHeader)
 		mh.Set("Content-Disposition", `form-data; name="avatar"; filename="test.txt"`)
 		mh.Set("Content-Type", "text/plain")
@@ -240,7 +220,6 @@ func TestUsersMeAvatar(t *testing.T) {
 
 		req := setupAuthRequest("POST", "/api/users/me/avatar", body, &AuthUser{ID: 1})
 		req.Header.Set("Content-Type", writer.FormDataContentType())
-
 		rr := httptest.NewRecorder()
 		h.UsersMeAvatar(rr, req)
 
@@ -262,12 +241,10 @@ func TestUsersMeDelete(t *testing.T) {
 			json.NewEncoder(w).Encode(map[string]any{"ok": true})
 		})
 		defer ts.Close()
-
 		h := &Handler{Pure: client}
 
 		req := setupAuthRequest("DELETE", "/api/users/me", nil, &AuthUser{ID: 1})
 		rr := httptest.NewRecorder()
-
 		h.UsersMeDelete(rr, req)
 
 		if rr.Code != http.StatusOK {
@@ -282,8 +259,7 @@ func TestGetUserWallet(t *testing.T) {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 	}
 	defer db.Close()
-
-	h := &Handler{MallDB: db}
+	h := &Handler{TeachDB: db}
 
 	t.Run("Success Get Balance", func(t *testing.T) {
 		mock.ExpectQuery("SELECT balance FROM user_wallets WHERE user_id = \\$1").
@@ -292,7 +268,6 @@ func TestGetUserWallet(t *testing.T) {
 
 		req := setupAuthRequest("GET", "/api/users/wallet", nil, &AuthUser{ID: 1, UserID: "U123"})
 		rr := httptest.NewRecorder()
-
 		h.GetUserWallet(rr, req)
 
 		if rr.Code != http.StatusOK {
@@ -310,7 +285,6 @@ func TestGetUserWallet(t *testing.T) {
 
 		req := setupAuthRequest("GET", "/api/users/wallet", nil, &AuthUser{ID: 1, UserID: "U123"})
 		rr := httptest.NewRecorder()
-
 		h.GetUserWallet(rr, req)
 
 		if rr.Code != http.StatusOK {
@@ -328,12 +302,10 @@ func TestGetUserAddresses(t *testing.T) {
 		t.Fatalf("Failed to open mock db: %v", err)
 	}
 	defer db.Close()
-
-	h := &Handler{MallDB: db}
+	h := &Handler{TeachDB: db}
 
 	t.Run("Success Get Addresses", func(t *testing.T) {
 		now := time.Now()
-		// ใช้ Object time.Now() แทน String เพื่อให้ Scan เข้า struct ได้ถูกต้อง
 		rows := sqlmock.NewRows([]string{"id", "title", "address", "is_default", "created_at"}).
 			AddRow(1, "Home", "123 BKK", true, now).
 			AddRow(2, "Office", "456 BKK", false, now)
@@ -344,7 +316,6 @@ func TestGetUserAddresses(t *testing.T) {
 
 		req := setupAuthRequest("GET", "/api/users/addresses", nil, &AuthUser{ID: 1, UserID: "U123"})
 		rr := httptest.NewRecorder()
-
 		h.GetUserAddresses(rr, req)
 
 		if rr.Code != http.StatusOK {
@@ -362,8 +333,7 @@ func TestAddUserAddress(t *testing.T) {
 		t.Fatalf("Failed to open mock db: %v", err)
 	}
 	defer db.Close()
-
-	h := &Handler{MallDB: db}
+	h := &Handler{TeachDB: db}
 
 	t.Run("Success Add Address", func(t *testing.T) {
 		payload := map[string]string{
@@ -378,7 +348,6 @@ func TestAddUserAddress(t *testing.T) {
 
 		req := setupAuthRequest("POST", "/api/users/addresses", bytes.NewBuffer(body), &AuthUser{ID: 1, UserID: "U123"})
 		rr := httptest.NewRecorder()
-
 		h.AddUserAddress(rr, req)
 
 		if rr.Code != http.StatusCreated {

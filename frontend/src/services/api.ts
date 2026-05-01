@@ -1,7 +1,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://gtymalltestbe.onrender.com',
+  // ใช้ URL จากไฟล์ .env หากไม่มีจะ fallback ไปที่ URL ของ backend ตัวจริง
+  baseURL: import.meta.env.VITE_API_URL || 'https://teachtestbe.onrender.com',
   withCredentials: true,
 });
 

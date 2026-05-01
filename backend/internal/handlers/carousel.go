@@ -1,4 +1,3 @@
-// backend/internal/handlers/carousel.go
 package handlers
 
 import (
@@ -11,13 +10,16 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// GET /api/carousel (Public - ดึงรูปไปโชว์หน้า Home อันนี้ไม่ซ้ำ)
+// GET /api/carousel
 func (h *Handler) CarouselList(w http.ResponseWriter, r *http.Request) {
-	if h.MallDB == nil { return }
+	if h.TeachDB == nil {
+		return
+	}
+
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 
-	rows, err := h.MallDB.QueryContext(ctx, `SELECT id, image_url, link_url, is_active, sort_order, created_at FROM carousels WHERE is_active = true ORDER BY sort_order ASC, created_at DESC`)
+	rows, err := h.TeachDB.QueryContext(ctx, `SELECT id, image_url, link_url, is_active, sort_order, created_at FROM carousels WHERE is_active = true ORDER BY sort_order ASC, created_at DESC`)
 	if err != nil {
 		h.writeError(w, http.StatusInternalServerError, "DB Error")
 		return
@@ -31,30 +33,27 @@ func (h *Handler) CarouselList(w http.ResponseWriter, r *http.Request) {
 			list = append(list, c)
 		}
 	}
-	
 	if list == nil {
-		list = []Carousel{} 
+		list = []Carousel{}
 	}
 	WriteJSON(w, http.StatusOK, list)
 }
 
-// ==========================================
-// Admin Functions (เติม New เพื่อหลบฟังก์ชันเก่า)
-// ==========================================
-
-// GET /api/admin/carousel (Admin ดึงรายการ)
+// GET /api/admin/carousel
 func (h *Handler) AdminCarouselListNew(w http.ResponseWriter, r *http.Request) {
-	h.CarouselList(w, r) 
+	h.CarouselList(w, r)
 }
 
-// POST /api/admin/carousel (Admin สร้างแบนเนอร์ใหม่)
+// POST /api/admin/carousel
 func (h *Handler) AdminCarouselCreateNew(w http.ResponseWriter, r *http.Request) {
 	var c Carousel
 	if err := json.NewDecoder(r.Body).Decode(&c); err != nil {
 		h.writeError(w, http.StatusBadRequest, "Invalid input")
 		return
 	}
-	_, err := h.MallDB.ExecContext(r.Context(), `INSERT INTO carousels (image_url, link_url, is_active, sort_order) VALUES ($1, $2, $3, $4)`, c.ImageURL, c.LinkURL, c.IsActive, c.SortOrder)
+
+	_, err := h.TeachDB.ExecContext(r.Context(), `INSERT INTO carousels (image_url, link_url, is_active, sort_order) VALUES ($1, $2, $3, $4)`,
+		c.ImageURL, c.LinkURL, c.IsActive, c.SortOrder)
 	if err != nil {
 		h.writeError(w, http.StatusInternalServerError, "Failed to create carousel")
 		return
@@ -62,12 +61,12 @@ func (h *Handler) AdminCarouselCreateNew(w http.ResponseWriter, r *http.Request)
 	WriteJSON(w, http.StatusCreated, map[string]string{"message": "Created successfully"})
 }
 
-// PUT /api/admin/carousel/{id} (Admin อัปเดตแบนเนอร์)
+// PUT /api/admin/carousel/{id}
 func (h *Handler) AdminCarouselUpdateNew(w http.ResponseWriter, r *http.Request) {
 	WriteJSON(w, http.StatusOK, map[string]string{"message": "Updated successfully"})
 }
 
-// DELETE /api/admin/carousel/{id} (Admin ลบแบนเนอร์)
+// DELETE /api/admin/carousel/{id}
 func (h *Handler) AdminCarouselDeleteNew(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.Atoi(idStr)
@@ -76,7 +75,7 @@ func (h *Handler) AdminCarouselDeleteNew(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	_, err = h.MallDB.ExecContext(r.Context(), `DELETE FROM carousels WHERE id = $1`, id)
+	_, err = h.TeachDB.ExecContext(r.Context(), `DELETE FROM carousels WHERE id = $1`, id)
 	if err != nil {
 		h.writeError(w, http.StatusInternalServerError, "Failed to delete carousel")
 		return

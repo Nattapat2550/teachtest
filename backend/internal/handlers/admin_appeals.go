@@ -7,7 +7,7 @@ import (
 )
 
 func (h *Handler) AdminGetAppeals(w http.ResponseWriter, r *http.Request) {
-	rows, err := h.MallDB.Query("SELECT id, user_id, topic, message, status FROM appeals ORDER BY id DESC")
+	rows, err := h.TeachDB.Query("SELECT id, user_id, topic, message, status FROM appeals ORDER BY id DESC")
 	if err != nil {
 		h.writeError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -17,10 +17,14 @@ func (h *Handler) AdminGetAppeals(w http.ResponseWriter, r *http.Request) {
 	var appeals []map[string]any
 	for rows.Next() {
 		var id int
-		var uid, topic, msg, status string 
+		var uid, topic, msg, status string
 		if err := rows.Scan(&id, &uid, &topic, &msg, &status); err == nil {
 			appeals = append(appeals, map[string]any{
-				"id": id, "user_id": uid, "topic": topic, "message": msg, "status": status,
+				"id":      id,
+				"user_id": uid,
+				"topic":   topic,
+				"message": msg,
+				"status":  status,
 			})
 		}
 	}
@@ -40,7 +44,7 @@ func (h *Handler) AdminUpdateAppealStatus(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	_, err := h.MallDB.ExecContext(r.Context(), "UPDATE appeals SET status = $1 WHERE id = $2", req.Status, id)
+	_, err := h.TeachDB.ExecContext(r.Context(), "UPDATE appeals SET status = $1 WHERE id = $2", req.Status, id)
 	if err != nil {
 		h.writeError(w, http.StatusInternalServerError, "Failed to update appeal status")
 		return
@@ -51,7 +55,7 @@ func (h *Handler) AdminUpdateAppealStatus(w http.ResponseWriter, r *http.Request
 
 func (h *Handler) AdminDeleteAppeal(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	_, err := h.MallDB.ExecContext(r.Context(), "DELETE FROM appeals WHERE id = $1", id)
+	_, err := h.TeachDB.ExecContext(r.Context(), "DELETE FROM appeals WHERE id = $1", id)
 	if err != nil {
 		h.writeError(w, http.StatusInternalServerError, "Failed to delete appeal")
 		return

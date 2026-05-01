@@ -12,18 +12,18 @@ import (
 )
 
 type Handler struct {
-	Cfg       config.Config
-	Pure      *pureapi.Client
-	Mail      *Mailer
-	Google    *GoogleOAuth
-	MallDB    *sql.DB // ✅ เพิ่ม MallDB เข้ามาในนี้
+	Cfg     config.Config
+	Pure    *pureapi.Client
+	Mail    *Mailer
+	Google  *GoogleOAuth
+	TeachDB *sql.DB
 }
 
-func New(cfg config.Config, p *pureapi.Client, mallDB *sql.DB) *Handler {
+func New(cfg config.Config, p *pureapi.Client, teachDB *sql.DB) *Handler {
 	h := &Handler{
-		Cfg:       cfg, 
-		Pure:      p, 
-		MallDB:    mallDB, // ✅ รับค่าและเก็บไว้ใช้
+		Cfg:     cfg,
+		Pure:    p,
+		TeachDB: teachDB,
 	}
 	h.Mail = NewMailer(cfg)
 	h.Google = NewGoogleOAuth(cfg)
@@ -31,7 +31,6 @@ func New(cfg config.Config, p *pureapi.Client, mallDB *sql.DB) *Handler {
 }
 
 // ---- small helpers ----
-
 func WriteJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("content-type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
@@ -53,6 +52,7 @@ func (h *Handler) writeErrFrom(w http.ResponseWriter, err error) {
 	if errors.As(err, &pe) {
 		msg := pe.Message
 		details := extractPureDetails(pe.Detail)
+
 		resp := map[string]any{"error": msg}
 		if details != "" {
 			resp["details"] = details

@@ -6,18 +6,18 @@ import (
 	"time"
 )
 
-// ===== NEWS FUNCTIONS =====
-
 func (h *Handler) GetLatestNews(w http.ResponseWriter, r *http.Request) {
-	if h.MallDB == nil { return }
-	
+	if h.TeachDB == nil {
+		return
+	}
+
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 
-	rows, err := h.MallDB.QueryContext(ctx, `SELECT id, title, content, COALESCE(image_url, ''), created_at FROM news WHERE is_active = true ORDER BY created_at DESC`)
-	if err != nil { 
+	rows, err := h.TeachDB.QueryContext(ctx, `SELECT id, title, content, COALESCE(image_url, ''), created_at FROM news WHERE is_active = true ORDER BY created_at DESC`)
+	if err != nil {
 		h.writeError(w, http.StatusInternalServerError, "DB Error")
-		return 
+		return
 	}
 	defer rows.Close()
 
@@ -28,10 +28,9 @@ func (h *Handler) GetLatestNews(w http.ResponseWriter, r *http.Request) {
 			newsList = append(newsList, n)
 		}
 	}
-	
-	if len(newsList) == 0 { 
+	if len(newsList) == 0 {
 		h.writeError(w, http.StatusNotFound, "No news")
-		return 
+		return
 	}
 	WriteJSON(w, http.StatusOK, newsList)
 }

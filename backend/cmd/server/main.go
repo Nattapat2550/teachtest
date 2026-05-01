@@ -18,20 +18,19 @@ import (
 
 func main() {
 	setupLogger()
-
 	cfg := config.Load()
 	port := getPort(cfg.Port)
 
 	// 1. Initialize Database
-	mallDB := database.InitDB(os.Getenv("MALL_DB_URL"))
-	if mallDB != nil {
-		defer mallDB.Close()
+	teachDB := database.InitDB(os.Getenv("TEACH_DB_URL"))
+	if teachDB != nil {
+		defer teachDB.Close()
 	}
 
 	// 2. Setup HTTP Server
 	srv := &http.Server{
 		Addr:              "0.0.0.0:" + port,
-		Handler:           httpapi.NewRouter(cfg, mallDB),
+		Handler:           httpapi.NewRouter(cfg, teachDB),
 		ReadHeaderTimeout: 15 * time.Second,
 		ReadTimeout:       30 * time.Second,
 		WriteTimeout:      30 * time.Second,
