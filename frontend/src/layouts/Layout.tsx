@@ -13,7 +13,6 @@ import darkImg from '../assets/dark.png';
 export default function Layout() {
   const location = useLocation();
   const token = localStorage.getItem('token');
-  
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
@@ -28,9 +27,9 @@ export default function Layout() {
     if (token) {
       api.get('/api/auth/status')
         .then(res => {
-          if (res.data && res.data.user) {
-            setUser(res.data.user);
-            localStorage.setItem('user', JSON.stringify(res.data.user));
+          if (res.data && res.data.owner) {
+            setUser(res.data.owner);
+            localStorage.setItem('user', JSON.stringify(res.data.owner));
           }
         })
         .catch(err => console.error("Failed to load user status", err));
@@ -38,6 +37,7 @@ export default function Layout() {
 
     window.addEventListener('storage', loadUser);
     window.addEventListener('user-updated', loadUser);
+    
     return () => {
       window.removeEventListener('storage', loadUser);
       window.removeEventListener('user-updated', loadUser);
@@ -52,7 +52,6 @@ export default function Layout() {
   }, [location.pathname]);
 
   const role = token ? (user?.role || 'user') : 'guest';
-
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -130,8 +129,8 @@ export default function Layout() {
 
               {role === 'guest' ? (
                 <div className="hidden md:flex items-center space-x-4 text-base font-bold">
-                  <Link to="/login" className="text-text-sub hover:text-brand transition-colors px-4 py-2">เข้าสู่ระบบ</Link>
-                  <Link to="/register" className="bg-text-main text-bg-main px-6 py-2.5 rounded-xl hover:opacity-90 transition-opacity shadow-md">สมัครสมาชิก</Link>
+                  <Link to="/login" className="text-text-sub hover:text-brand transition-colors px-4 py-2"> </Link>
+                  <Link to="/register" className="bg-text-main text-bg-main px-6 py-2.5 rounded-xl hover:opacity-90 transition-opacity shadow-md"> </Link>
                 </div>
               ) : (
                 <div className="relative" ref={dropdownRef}>
@@ -149,11 +148,11 @@ export default function Layout() {
                       </div>
                       <Link to="/settings" onClick={() => setDropdownOpen(false)} className="flex items-center px-5 py-3 text-sm font-bold text-text-main hover:bg-bg-main transition-colors">
                         <img src={settingImg} alt="Settings" className="w-5 h-5 mr-3 opacity-70 dark:invert" />
-                        ตั้งค่าโปรไฟล์
+                                               
                       </Link>
                       <button onClick={handleLogout} className="w-full text-left flex items-center px-5 py-3 text-sm font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
                         <img src={logoutImg} alt="Logout" className="w-5 h-5 mr-3 opacity-80" />
-                        ออกจากระบบ
+                                               
                       </button>
                     </div>
                   )}
@@ -168,7 +167,6 @@ export default function Layout() {
                   {mobileMenuOpen ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /> : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 6h16M4 12h16M4 18h16" />}
                 </svg>
               </button>
-
             </div>
           </div>
         </div>
@@ -189,8 +187,8 @@ export default function Layout() {
               )}
               {role === 'guest' && (
                 <div className="pt-6 mt-4 border-t border-outline grid grid-cols-2 gap-4">
-                  <Link to="/login" className="flex items-center justify-center px-4 py-3 text-sm font-bold bg-bg-main text-text-main rounded-xl">เข้าสู่ระบบ</Link>
-                  <Link to="/register" className="flex items-center justify-center px-4 py-3 text-sm font-bold bg-text-main text-bg-main rounded-xl">สมัครสมาชิก</Link>
+                  <Link to="/login" className="flex items-center justify-center px-4 py-3 text-sm font-bold bg-bg-main text-text-main rounded-xl"> </Link>
+                  <Link to="/register" className="flex items-center justify-center px-4 py-3 text-sm font-bold bg-text-main text-bg-main rounded-xl"> </Link>
                 </div>
               )}
             </div>

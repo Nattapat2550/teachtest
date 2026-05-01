@@ -19,8 +19,8 @@ export const useOAuthCallback = () => {
       
       api.get('/api/auth/status')
         .then((res) => {
-          if (res.data && res.data.user) {
-            localStorage.setItem('user', JSON.stringify(res.data.user));
+          if (res.data && res.data.owner) {
+            localStorage.setItem('user', JSON.stringify(res.data.owner));
             window.dispatchEvent(new Event('user-updated'));
           }
           const targetUrl = role === 'admin' ? '/admin' : '/home';

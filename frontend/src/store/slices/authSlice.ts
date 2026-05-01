@@ -1,11 +1,11 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import api from '../../services/api';
 
-// 1. สร้าง Interface เก็บโครงสร้าง Auth State
+// 1. Interface Auth State
 interface AuthState {
   isAuthenticated: boolean;
   role: string | null;
-  userId: string | null; // เปลี่ยนเป็น string เพื่อรองรับ UUID
+  userId: string | null; // string UUID
   status: 'idle' | 'loading' | 'succeeded' | 'failed';
   error: string | null;
 }
@@ -30,7 +30,7 @@ export const checkAuthStatus = createAsyncThunk(
   }
 );
 
-// 2. บอก Redux Thunk ว่าพารามิเตอร์ที่รับเข้ามาเป็น Object ที่มี email, password, remember
+// 2. Redux Thunk Object email, password, remember
 interface LoginParams {
   email?: string;
   password?: string;
@@ -44,7 +44,7 @@ export const login = createAsyncThunk(
       const res = await api.post('/api/auth/login', { email, password, remember });
       return res.data;
     } catch (err: any) {
-      return rejectWithValue(err.response?.data?.error || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง');
+      return rejectWithValue(err.response?.data?.error || 'Login failed');
     }
   }
 );
@@ -76,11 +76,11 @@ const authSlice = createSlice({
       })
       .addCase(checkAuthStatus.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        // ดึง user_id (string) มาใช้งานเป็นหลัก ถ้าไม่มีให้ fallback ไปหา id
+        // user_id (string) fallback
         const { authenticated, role, id, user_id } = action.payload || {};
         state.isAuthenticated = !!authenticated;
         state.role = authenticated ? role : null;
-        state.userId = authenticated ? (user_id || id) : null; 
+        state.userId = authenticated ? (user_id || id) : null;
       })
       .addCase(checkAuthStatus.rejected, (state) => {
         state.status = 'failed';
@@ -93,21 +93,21 @@ const authSlice = createSlice({
         state.error = null;
       })
       .addCase(login.fulfilled, (state, action) => {
-        if (action.payload.ok && action.payload.user) {
+        if (action.payload.ok && action.payload.owner) {
           state.status = 'succeeded';
           state.isAuthenticated = true;
-          state.role = action.payload.user.role;
+          state.role = action.payload.owner.role;
           
-          // ดึง user_id ออกมาเก็บใน State เพื่อใช้ยืนยันตัวตนกับ Database ใหม่
-          state.userId = action.payload.user.user_id || action.payload.user.id;
+          // user_id State Database
+          state.userId = action.payload.owner.user_id || action.payload.owner.id;
 
           if (action.payload.token) {
             localStorage.setItem('token', action.payload.token);
           }
-          if (action.payload.user.role) {
-            localStorage.setItem('role', action.payload.user.role);
+          if (action.payload.owner.role) {
+            localStorage.setItem('role', action.payload.owner.role);
           }
-          localStorage.setItem('user', JSON.stringify(action.payload.user));
+          localStorage.setItem('user', JSON.stringify(action.payload.owner));
           
           window.dispatchEvent(new Event('storage'));
         }
