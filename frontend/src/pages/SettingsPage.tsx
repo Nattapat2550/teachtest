@@ -10,6 +10,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     api.get('/api/users/me').then(({ data }) => {
+      // ดึงให้ครอบคลุมเผื่อ API ส่งกลับมาเป็น owner
       const u = data.owner || data;
       if (u) {
         setProfile({
@@ -29,19 +30,19 @@ export default function SettingsPage() {
     try {
       await api.put('/api/users/me', profile);
       
-      const userStr = localStorage.getItem('user');
-      if (userStr) {
-        const u = JSON.parse(userStr);
+      // แก้ไข: อ่านและเซฟเป็น 'owner'
+      const ownerStr = localStorage.getItem('owner');
+      if (ownerStr) {
+        const u = JSON.parse(ownerStr);
         u.username = profile.username;
         u.first_name = profile.first_name;
-        localStorage.setItem('user', JSON.stringify(u));
+        localStorage.setItem('owner', JSON.stringify(u));
         window.dispatchEvent(new Event('storage'));
       }
-
-      setSuccessMsg(' ');
+      setSuccessMsg('บันทึกข้อมูลสำเร็จ');
       setTimeout(() => setSuccessMsg(''), 3000);
     } catch (err: any) {
-        alert(err.response?.data?.error || ' '); 
+        alert(err.response?.data?.error || 'เกิดข้อผิดพลาด Username อาจซ้ำ'); 
     }
     setLoading(false);
   };
@@ -49,7 +50,6 @@ export default function SettingsPage() {
   const handleAvatarChange = async (e: any) => {
     const file = e.target.files[0];
     if (!file) return;
-
     const formData = new FormData();
     formData.append('avatar', file);
 
@@ -57,32 +57,34 @@ export default function SettingsPage() {
       const { data } = await api.post('/api/users/me/avatar', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       setProfile({ ...profile, profile_picture_url: data.profile_picture_url });
       
-      const userStr = localStorage.getItem('user');
-      if (userStr) {
-        const user = JSON.parse(userStr);
-        user.profile_picture_url = data.profile_picture_url;
-        localStorage.setItem('user', JSON.stringify(user));
+      // แก้ไข: อ่านและเซฟเป็น 'owner'
+      const ownerStr = localStorage.getItem('owner');
+      if (ownerStr) {
+        const ownerObj = JSON.parse(ownerStr);
+        ownerObj.profile_picture_url = data.profile_picture_url;
+        localStorage.setItem('owner', JSON.stringify(ownerObj));
         window.dispatchEvent(new Event('storage'));
       }
-      alert(' ');
-    } catch (err: any) { alert(' '); }
+      alert('อัปเดตรูปโปรไฟล์สำเร็จ');
+    } catch (err: any) { alert('อัปโหลดล้มเหลว'); }
   };
 
   const handleDeleteAccount = async () => {
-    if (window.confirm(" )")) {
+    if (window.confirm("คุณแน่ใจหรือไม่ว่าต้องการลบบัญชี? (ไม่สามารถกู้คืนได้)")) {
       try {
         await api.put('/api/users/me', { status: 'deleted' });
         localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        // แก้ไข: ลบ 'owner'
+        localStorage.removeItem('owner');
         window.location.href = '/login';
-      } catch (err: any) { alert(' '); }
+      } catch (err: any) { alert('ลบข้อมูลไม่สำเร็จ'); }
     }
   };
 
   return (
     <div className="max-w-4xl mx-auto p-6 mt-10 space-y-8 animate-fade-in pb-20">
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 lg:p-8">
-        <h2 className="text-2xl font-bold border-b border-gray-200 dark:border-gray-700 pb-4 mb-6 text-gray-900 dark:text-white"> </h2>
+        <h2 className="text-2xl font-bold border-b border-gray-200 dark:border-gray-700 pb-4 mb-6 text-gray-900 dark:text-white">การตั้งค่าบัญชี</h2>
         
         {successMsg && <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 rounded-xl font-medium">{successMsg}</div>}
 
@@ -92,11 +94,11 @@ export default function SettingsPage() {
               {profile.profile_picture_url ? (
                 <img src={profile.profile_picture_url} alt="Profile" className="w-full h-full object-cover" />
               ) : (
-                <span className="text-gray-400 dark:text-gray-500 text-sm"> </span>
+                <span className="text-gray-400 dark:text-gray-500 text-sm">ไม่มีรูปภาพ</span>
               )}
             </div>
             <label className="cursor-pointer bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 py-2 px-5 rounded-xl shadow-sm hover:bg-gray-100 dark:hover:bg-gray-600 transition text-sm font-medium">
-                             
+              เปลี่ยนรูปโปรไฟล์
               <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
             </label>
           </div>
@@ -108,20 +110,21 @@ export default function SettingsPage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"> </label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">ชื่อจริง</label>
                 <input type="text" value={profile.first_name} onChange={(e) => setProfile({...profile, first_name: e.target.value})} className="block w-full border border-gray-300 dark:border-gray-600 rounded-xl p-3 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"> </label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">นามสกุล</label>
                 <input type="text" value={profile.last_name} onChange={(e) => setProfile({...profile, last_name: e.target.value})} className="block w-full border border-gray-300 dark:border-gray-600 rounded-xl p-3 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"> </label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">เบอร์โทรศัพท์</label>
               <input type="tel" value={profile.tel} onChange={(e) => setProfile({...profile, tel: e.target.value})} className="block w-full border border-gray-300 dark:border-gray-600 rounded-xl p-3 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
+
             <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-xl hover:bg-blue-700 transition shadow-md shadow-blue-500/20 mt-2">
-              {loading ? ' ...' : ' '}
+              {loading ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
             </button>
           </form>
         </div>
@@ -130,9 +133,9 @@ export default function SettingsPage() {
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-red-200 dark:border-red-900/50 p-6 lg:p-8 flex flex-col md:flex-row justify-between items-center gap-4">
         <div>
           <h3 className="text-xl font-bold text-red-600 dark:text-red-500">Danger Zone</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">  30  )</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">ลบบัญชีของคุณอย่างถาวร (บัญชีจะถูกลบหลังจาก 30 วัน)</p>
         </div>
-        <button onClick={handleDeleteAccount} className="bg-red-600 text-white py-2.5 px-6 rounded-xl hover:bg-red-700 font-bold whitespace-nowrap"> </button>
+        <button onClick={handleDeleteAccount} className="bg-red-600 text-white py-2.5 px-6 rounded-xl hover:bg-red-700 font-bold whitespace-nowrap">ลบบัญชี</button>
       </div>
     </div>
   );

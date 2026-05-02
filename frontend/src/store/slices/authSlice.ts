@@ -1,7 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import api from '../../services/api';
 
-// 1. Interface Auth State
 interface AuthState {
   isAuthenticated: boolean;
   role: string | null;
@@ -30,7 +29,6 @@ export const checkAuthStatus = createAsyncThunk(
   }
 );
 
-// 2. Redux Thunk Object email, password, remember
 interface LoginParams {
   email?: string;
   password?: string;
@@ -100,14 +98,14 @@ const authSlice = createSlice({
           
           // user_id State Database
           state.userId = action.payload.owner.user_id || action.payload.owner.id;
-
           if (action.payload.token) {
             localStorage.setItem('token', action.payload.token);
           }
           if (action.payload.owner.role) {
             localStorage.setItem('role', action.payload.owner.role);
           }
-          localStorage.setItem('user', JSON.stringify(action.payload.owner));
+          // บันทึกข้อมูล owner ลง LocalStorage
+          localStorage.setItem('owner', JSON.stringify(action.payload.owner));
           
           window.dispatchEvent(new Event('storage'));
         }
@@ -123,7 +121,8 @@ const authSlice = createSlice({
         
         localStorage.removeItem('token');
         localStorage.removeItem('role');
-        localStorage.removeItem('user');
+        // ลบข้อมูล owner ออกจาก LocalStorage เมื่อออกจากระบบ
+        localStorage.removeItem('owner');
       });
   }
 });
