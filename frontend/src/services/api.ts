@@ -1,23 +1,36 @@
 import axios from 'axios';
 
 const api = axios.create({
-  // ใช้ URL จากไฟล์ .env หากไม่มีจะ fallback ไปที่ URL ของ backend ตัวจริง
-  baseURL: import.meta.env.VITE_API_URL || 'https://teachtestbe.onrender.com',
-  withCredentials: true,
+  // เปลี่ยน URL เป็นของ teachtestbe ให้ถูกต้อง
+  baseURL: import.meta.env.VITE_API_URL || 'https://teachtest.onrender.com',
+  withCredentials: true, // สำคัญมาก ป้องกัน CORS และให้ระบบ Auth ทำงานได้
 });
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+// Request Interceptor สำหรับแนบ Token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
   }
-  return config;
-});
+);
+
+// Response Interceptor สำหรับจัดการ Token หมดอายุ (ถ้ามี)
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('owner');
+      // window.location.href = '/login'; // เปิดใช้ถ้าต้องการให้เด้งออกเมื่อ Token หมดอายุ
+    }
+    return Promise.reject(error);
+  }
+);
 
 export default api;
-
-// ==========================================
-// Admin API (User Role Management)
-// ==========================================
-export const adminUpdateUserRole = (userId: string, role: string) => 
-   api.put(`/api/admin/users/${userId}/role`, { role });

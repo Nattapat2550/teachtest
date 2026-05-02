@@ -7,6 +7,8 @@ import (
 
 func cors(allowedOrigins []string, isProd bool) func(http.Handler) http.Handler {
 	allow := make(map[string]struct{})
+	
+	// แก้ไข: ตัด trailing slash ออกเสมอ เพื่อให้จับคู่ได้ชัวร์ 100%
 	for _, o := range allowedOrigins {
 		o = strings.TrimSpace(o)
 		o = strings.TrimRight(o, "/")
@@ -14,21 +16,18 @@ func cors(allowedOrigins []string, isProd bool) func(http.Handler) http.Handler 
 			allow[o] = struct{}{}
 		}
 	}
+
 	allowAll := !isProd || len(allow) == 0
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			origin := r.Header.Get("Origin")
-
 			if origin != "" {
 				checkOrigin := strings.TrimRight(origin, "/")
 				if allowAll {
 					w.Header().Set("Access-Control-Allow-Origin", origin)
 				} else {
 					if _, ok := allow[checkOrigin]; ok {
-						w.Header().Set("Access-Control-Allow-Origin", origin)
-					} else {
-						// อนุโลม Header ให้ Origin เพื่อป้องกัน 404 / CORS Block บน Render ตอน Preflight
 						w.Header().Set("Access-Control-Allow-Origin", origin)
 					}
 				}
@@ -37,7 +36,7 @@ func cors(allowedOrigins []string, isProd bool) func(http.Handler) http.Handler 
 					w.Header().Set("Vary", "Origin")
 					w.Header().Set("Access-Control-Allow-Credentials", "true")
 					w.Header().Set("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS")
-					w.Header().Set("Access-Control-Allow-Headers", "Content-Type,Authorization,x-requested-with,X-API-Key,Accept")
+					w.Header().Set("Access-Control-Allow-Headers", "Content-Type,Authorization,x-requested-with,X-API-Key")
 					w.Header().Set("Access-Control-Expose-Headers", "Content-Length,Content-Type,Content-Disposition")
 				}
 			}
