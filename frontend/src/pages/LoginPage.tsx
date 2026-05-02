@@ -1,105 +1,102 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../services/api';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [remember, setRemember] = useState(false);
   const [error, setError] = useState('');
-  const [isBanned, setIsBanned] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
-
-  const handleLogin = async (e: React.FormEvent) => {
+  const [isBanned, setIsBanned] = useState(false); // เพิ่ม State เช็คแบน
+  
+  const handleLogin = async (e: any) => {
     e.preventDefault();
     setError('');
     setIsBanned(false);
-    setIsLoading(true);
-
     try {
-      const response = await axios.post('/api/auth/login', { email, password });
+      const { data } = await api.post('/api/auth/login', { email, password, remember });
       
-      // แปลงจากข้อมูล .user เดิม เป็น .owner ให้ตรงกับ Schema และ Handler ล่าสุด
-      const { token, owner } = response.data;
-      
-      localStorage.setItem('token', token);
-      localStorage.setItem('owner', JSON.stringify(owner));
-      
-      navigate('/');
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ';
-      const statusCode = err.response?.status;
-
-      // ตรวจสอบ Error ว่าเป็นการถูกแบนจากระบบหรือไม่
-      if (statusCode === 403 || errorMessage.toLowerCase().includes('ban') || errorMessage.toLowerCase().includes('ระงับ')) {
-        setIsBanned(true);
-        setError('บัญชีของคุณถูกระงับการใช้งาน');
-      } else {
-        setError(errorMessage);
+      if (data.user.status === 'banned') {
+        setIsBanned(true); // เซ็ตแบนเป็น true เพื่อโชว์ปุ่มอุทธรณ์
+        return setError('บัญชีของคุณถูกระงับการใช้งานถาวร');
       }
-    } finally {
-      setIsLoading(false);
+      if (data.reactivated) alert('กู้คืนบัญชีสำเร็จ! ยินดีต้อนรับกลับมา');
+
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      window.location.href = '/home';
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'เข้าสู่ระบบล้มเหลว');
     }
   };
 
+  const handleGoogleLogin = () => {
+    window.location.href = 'https://teachtest.onrender.com/api/auth/google';
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full p-8 bg-white rounded-lg shadow-md">
-        <h2 className="text-2xl font-bold text-center text-gray-800 mb-8">เข้าสู่ระบบ</h2>
+    <div className="flex justify-center items-center min-h-[80vh]">
+      <div className="w-full max-w-md bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl border dark:border-gray-700">
+        <h2 className="text-2xl font-bold text-center mb-6 text-gray-800 dark:text-white">เข้าสู่ระบบ</h2>
         
+        {/* เพิ่มเงื่อนไขเพื่อแสดงปุ่ม ยื่นคำร้องปลดแบน เมื่อ isBanned = true */}
         {error && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
-            <p className="text-red-600 text-sm text-center">{error}</p>
+          <div className="bg-red-100 text-red-700 p-3 rounded mb-4 text-sm flex flex-col items-center">
+            <span className="text-center">{error}</span>
             {isBanned && (
-              <div className="mt-2 text-center">
-                <Link to="/appeal" className="text-blue-600 hover:underline text-sm font-medium">
-                  คลิกที่นี่เพื่อยื่นอุทธรณ์
-                </Link>
-              </div>
+              <Link to="/appeals" className="mt-2 text-blue-700 hover:text-blue-900 font-bold underline">
+                ยื่นคำร้องปลดแบนคลิกที่นี่
+              </Link>
             )}
           </div>
         )}
-
-        <form onSubmit={handleLogin} className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">อีเมล</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 outline-none"
-              placeholder="example@email.com"
-            />
+        
+        <form onSubmit={handleLogin}>
+          <div className="mb-4">
+            <label className="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">อีเมล</label>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
+              className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white" />
+          </div>
+          <div className="mb-4 relative">
+            <label className="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">รหัสผ่าน</label>
+            <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} required
+              className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white" />
+            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-9 text-gray-500 dark:text-gray-400 hover:text-gray-700 text-sm">
+              {showPassword ? 'ซ่อน' : 'แสดง'}
+            </button>
+          </div>
+          
+          <div className="mb-6 flex items-center justify-between">
+            <div className="flex items-center">
+              <input 
+                type="checkbox" 
+                id="remember" 
+                checked={remember} 
+                onChange={(e) => setRemember(e.target.checked)} 
+                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <label htmlFor="remember" className="ml-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+                จดจำการเข้าสู่ระบบ
+              </label>
+            </div>
+            <Link to="/reset" className="text-sm text-blue-600 hover:underline dark:text-blue-400">
+              ลืมรหัสผ่าน?
+            </Link>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">รหัสผ่าน</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 outline-none"
-              placeholder="••••••••"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition duration-200 disabled:opacity-50"
-          >
-            {isLoading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
-          </button>
+          <button type="submit" className="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition">เข้าสู่ระบบ</button>
         </form>
 
-        <div className="mt-6 text-center text-sm text-gray-600">
-          ยังไม่มีบัญชีใช่หรือไม่?{' '}
-          <Link to="/register" className="text-blue-600 hover:underline font-medium">
-            สมัครสมาชิก
-          </Link>
+        <div className="relative flex items-center justify-center w-full mt-6 mb-4">
+          <div className="border-t border-gray-300 dark:border-gray-600 w-full"></div>
+          <span className="absolute bg-white dark:bg-gray-800 px-3 text-sm text-gray-500 dark:text-gray-400">หรือ</span>
         </div>
+
+        <button onClick={handleGoogleLogin} className="w-full flex items-center justify-center bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition">
+          <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="G" className="w-5 h-5 mr-2" />
+          เข้าสู่ระบบด้วย Google
+        </button>
       </div>
     </div>
   );
