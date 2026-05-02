@@ -1,17 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { courseApi } from '../../services/api';
+import { courseApi, studentApi } from '../../services/api';
+import { useSelector } from 'react-redux';
 
 export default function CourseCatalog() {
   const [courses, setCourses] = useState<any[]>([]);
+  const [myCourses, setMyCourses] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const { isAuthenticated } = useSelector((state: any) => state.auth);
 
   useEffect(() => {
-    courseApi.getPublishedCourses()
-      .then(res => setCourses(res.data || []))
-      .catch(err => console.error(err))
-      .finally(() => setLoading(false));
-  }, []);
+    const fetchAllData = async () => {
+      try {
+        const res = await courseApi.getPublishedCourses();
+        setCourses(res.data || []);
+
+        // ตรวจสอบว่าคอร์สไหนซื้อแล้วบ้าง
+        if (isAuthenticated) {
+          const myRes = await studentApi.getMyLearning();
+          const ownedIds = (myRes.data || []).map((l: any) => l.course.id);
+          setMyCourses(ownedIds);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAllData();
+  }, [isAuthenticated]);
 
   if (loading) return <div className="text-center mt-20 dark:text-white">กำลังโหลด...</div>;
 
@@ -22,15 +39,36 @@ export default function CourseCatalog() {
         <p className="text-gray-500">ยังไม่มีหลักสูตรที่เปิดสอน</p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {courses.map((c) => (
-            <Link to={`/courses/${c.id}`} key={c.id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 p-4 hover:shadow-md transition flex flex-col">
-              <div className="aspect-video bg-gray-100 dark:bg-gray-900 rounded-xl mb-4 overflow-hidden">
-                {c.cover_image ? <img src={c.cover_image} alt={c.title} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-400">No Image</div>}
-              </div>
-              <h2 className="font-bold text-lg line-clamp-2 dark:text-white mb-2">{c.title}</h2>
-              <p className="text-blue-600 dark:text-blue-400 font-black mt-auto">฿ {Number(c.price).toLocaleString()}</p>
-            </Link>
-          ))}
+          {courses.map((c) => {
+            const isOwned = myCourses.includes(c.id);
+
+            return (
+              <Link 
+                to={isOwned ? `/my-learning` : `/courses/${c.id}`} 
+                key={c.id} 
+                className={`bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 p-4 flex flex-col relative transition-all duration-300 ${
+                  isOwned 
+                    ? 'opacity-60 grayscale hover:grayscale-0 hover:opacity-100' 
+                    : 'hover:shadow-lg hover:-translate-y-1'
+                }`}
+              >
+                {/* แถบแจ้งเตือนถ้าซื้อแล้ว */}
+                {isOwned && (
+                  <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-3 py-1.5 rounded-full z-10 font-bold shadow-md border border-green-400">
+                    ซื้อแล้ว
+                  </div>
+                )}
+                
+                <div className="aspect-video bg-gray-100 dark:bg-gray-900 rounded-xl mb-4 overflow-hidden">
+                  {c.cover_image ? <img src={c.cover_image} alt={c.title} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-400">No Image</div>}
+                </div>
+                <h2 className="font-bold text-lg line-clamp-2 dark:text-white mb-2">{c.title}</h2>
+                <p className="text-blue-600 dark:text-blue-400 font-black mt-auto">
+                  {isOwned ? 'เป็นเจ้าของแล้ว' : `฿ ${Number(c.price).toLocaleString()}`}
+                </p>
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>

@@ -110,7 +110,7 @@ export default function Layout() {
                 <div className="p-2 bg-brand/10 rounded-xl mr-3 group-hover:scale-105 transition-transform">
                   <img src={logoImg} alt="Logo" className="w-8 h-8 object-contain" />
                 </div>
-                <span className="text-2xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-brand to-purple-600">TeachTest</span>
+                <span className="text-2xl font-black tracking-tight bg-clip-text text-transparent bg-linear-to-r from-brand to-purple-600">TeachTest</span>
               </Link>
               
               <div className="hidden lg:flex items-center space-x-8 text-base">
@@ -130,7 +130,7 @@ export default function Layout() {
                 )}
 
                 {role === 'admin' && (
-                  <Link to="/admin" className="bg-gradient-to-r from-brand to-purple-600 px-5 py-2 rounded-xl text-white font-bold shadow-lg shadow-brand/30 hover:shadow-brand/50 transform hover:-translate-y-0.5 transition-all">
+                  <Link to="/admin" className="bg-linear-to-r from-brand to-purple-600 px-5 py-2 rounded-xl text-white font-bold shadow-lg shadow-brand/30 hover:shadow-brand/50 transform hover:-translate-y-0.5 transition-all">
                     Admin Workspace
                   </Link>
                 )}
@@ -207,7 +207,7 @@ export default function Layout() {
               )}
 
               {role === 'admin' && (
-                <Link to="/admin" className="block px-4 py-3 mt-4 bg-gradient-to-r from-brand to-purple-600 rounded-xl font-bold text-white shadow-md text-center">Admin Workspace</Link>
+                <Link to="/admin" className="block px-4 py-3 mt-4 bg-linear-to-r from-brand to-purple-600 rounded-xl font-bold text-white shadow-md text-center">Admin Workspace</Link>
               )}
               
               {role === 'guest' && (

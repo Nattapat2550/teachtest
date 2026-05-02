@@ -21,7 +21,6 @@ func (h *Handler) AuthGoogleStart(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) AuthGoogleCallback(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	front := strings.TrimRight(h.Cfg.FrontendURL, "/")
-
 	code := strings.TrimSpace(r.URL.Query().Get("code"))
 	if code == "" {
 		http.Redirect(w, r, front+"/login?error=oauth_failed", http.StatusFound)
@@ -63,18 +62,14 @@ func (h *Handler) AuthGoogleCallback(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, front+"/login?error=oauth_failed", http.StatusFound)
 		return
 	}
-
 	h.setAuthCookie(w, token, true)
 
-	_, _ = h.TeachDB.ExecContext(ctx, `
-    INSERT INTO user_roles (user_id, role) 
-    VALUES ($1, 'student') 
-    ON CONFLICT (user_id) DO NOTHING
-	`, randomUserID)
-	
+	// 🌟 บันทึก Role พื้นฐานลง Database ทันทีที่ Google Login สำเร็จ
+	h.assignDefaultRole(ctx, randomUserID)
+
 	role := user.Role
 	if role == "" {
-		role = "user"
+		role = "student"
 	}
 
 	frag := "token=" + url.QueryEscape(token) + "&role=" + url.QueryEscape(role)
@@ -99,7 +94,7 @@ type googleMobileReq struct {
 	AuthCode string `json:"authCode"`
 }
 
-// POST /api/auth/google-mobile 
+// POST /api/auth/google-mobile
 func (h *Handler) AuthGoogleMobileCallback(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var req googleMobileReq
@@ -153,8 +148,10 @@ func (h *Handler) AuthGoogleMobileCallback(w http.ResponseWriter, r *http.Reques
 		h.writeError(w, http.StatusInternalServerError, "Token error")
 		return
 	}
-
 	h.setAuthCookie(w, token, true)
+
+	// 🌟 บันทึก Role พื้นฐานลง Database ทันทีที่ Google Mobile Login สำเร็จ
+	h.assignDefaultRole(ctx, randomUserID)
 
 	WriteJSON(w, http.StatusOK, map[string]any{
 		"token":               token,

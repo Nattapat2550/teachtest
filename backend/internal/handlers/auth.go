@@ -2,6 +2,7 @@
 package handlers
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
@@ -130,6 +131,7 @@ func (h *Handler) AuthRegister(w http.ResponseWriter, r *http.Request) {
 			emailSent = true
 		}
 	}
+
 	WriteJSON(w, http.StatusOK, map[string]any{"ok": true, "emailSent": emailSent})
 }
 
@@ -142,6 +144,7 @@ func (h *Handler) AuthVerifyCode(w http.ResponseWriter, r *http.Request) {
 	}
 	email := strings.TrimSpace(strings.ToLower(req.Email))
 	code := strings.TrimSpace(req.Code)
+
 	if email == "" || code == "" {
 		h.writeError(w, http.StatusBadRequest, "Missing fields")
 		return
@@ -187,7 +190,6 @@ func (h *Handler) AuthCompleteProfile(w http.ResponseWriter, r *http.Request) {
 
 	var user userDTO
 	err := h.Pure.Post(ctx, "/api/internal/find-user", map[string]any{"email": email}, &user)
-
 	if err != nil || user.ID == 0 {
 		if req.OAuthId != "" {
 			payloadOAuth := map[string]any{
@@ -217,7 +219,6 @@ func (h *Handler) AuthCompleteProfile(w http.ResponseWriter, r *http.Request) {
 		"last_name":  strings.TrimSpace(req.LastName),
 		"tel":        strings.TrimSpace(req.Tel),
 	}
-
 	if err := h.Pure.Post(ctx, "/api/internal/set-username-password", payloadUpdate, &user); err != nil {
 		if isUsernameUniqueViolation(err) {
 			h.writeError(w, http.StatusConflict, "Username already taken")
@@ -241,11 +242,8 @@ func (h *Handler) AuthCompleteProfile(w http.ResponseWriter, r *http.Request) {
 	}
 	h.setAuthCookie(w, token, req.Remember)
 
-	_, _ = h.TeachDB.ExecContext(ctx, `
-    INSERT INTO user_roles (user_id, role) 
-    VALUES ($1, 'student') 
-    ON CONFLICT (user_id) DO NOTHING
-	`, randomUserID)
+	// 🌟 บันทึก Role ลง Database
+	h.assignDefaultRole(ctx, randomUserID)
 
 	WriteJSON(w, http.StatusOK, map[string]any{
 		"ok":    true,
@@ -274,7 +272,6 @@ func (h *Handler) AuthLogin(w http.ResponseWriter, r *http.Request) {
 		h.writeError(w, http.StatusBadRequest, "Invalid JSON")
 		return
 	}
-
 	email := strings.TrimSpace(strings.ToLower(req.Email))
 	if email == "" || req.Password == "" {
 		h.writeError(w, http.StatusBadRequest, "Missing fields")
@@ -292,7 +289,6 @@ func (h *Handler) AuthLogin(w http.ResponseWriter, r *http.Request) {
 		h.writeError(w, http.StatusUnauthorized, "Invalid credentials")
 		return
 	}
-
 	if err := bcrypt.CompareHashAndPassword([]byte(*user.PasswordHash), []byte(req.Password)); err != nil {
 		h.writeError(w, http.StatusUnauthorized, "Invalid credentials")
 		return
@@ -334,6 +330,9 @@ func (h *Handler) AuthLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	h.setAuthCookie(w, token, req.Remember)
 
+	// 🌟 บันทึก Role ลง Database
+	h.assignDefaultRole(ctx, randomUserID)
+
 	WriteJSON(w, http.StatusOK, map[string]any{
 		"ok":          true,
 		"reactivated": reactivated,
@@ -362,7 +361,6 @@ func (h *Handler) AuthStatus(w http.ResponseWriter, r *http.Request) {
 		WriteJSON(w, http.StatusOK, map[string]any{"authenticated": false})
 		return
 	}
-
 	claims, err := h.parseToken(tok)
 	if err != nil {
 		WriteJSON(w, http.StatusOK, map[string]any{"authenticated": false})
@@ -374,7 +372,6 @@ func (h *Handler) AuthStatus(w http.ResponseWriter, r *http.Request) {
 		WriteJSON(w, http.StatusOK, map[string]any{"authenticated": false})
 		return
 	}
-
 	if user.Status != nil && *user.Status == "banned" {
 		h.clearAuthCookie(w)
 		WriteJSON(w, http.StatusOK, map[string]any{"authenticated": false, "reason": "banned"})
@@ -462,7 +459,6 @@ func (h *Handler) AuthResetPassword(w http.ResponseWriter, r *http.Request) {
 		h.writeError(w, http.StatusBadRequest, "Invalid JSON")
 		return
 	}
-
 	token := strings.TrimSpace(req.Token)
 	newPass := req.NewPassword
 
@@ -501,4 +497,16 @@ func randomTokenHex(nBytes int) string {
 	b := make([]byte, nBytes)
 	_, _ = rand.Read(b)
 	return hex.EncodeToString(b)
+}
+
+// 🌟 ฟังก์ชันจัดการ Role พื้นฐาน (เพิ่มลงฐานข้อมูลเพื่อกันบั๊ก)
+func (h *Handler) assignDefaultRole(ctx context.Context, userID string) {
+	_, err := h.TeachDB.ExecContext(ctx, `
+		INSERT INTO user_roles (user_id, role) 
+		VALUES ($1, 'student') 
+		ON CONFLICT (user_id) DO NOTHING
+	`, userID)
+	if err != nil {
+		fmt.Println("Failed to assign default role:", err)
+	}
 }

@@ -169,13 +169,13 @@ export default function TutorDashboard() {
                     )}
 
                     <form onSubmit={(e) => handleCreateItem(e, pl.id)} className="flex flex-wrap gap-2">
-                      <input type="text" placeholder="ชื่อเนื้อหาย่อย" required className="flex-1 min-w-[150px] p-2 border rounded-lg dark:bg-gray-800 dark:text-white" value={itemForm.title} onChange={e=>setItemForm({...itemForm, title: e.target.value})} />
+                      <input type="text" placeholder="ชื่อเนื้อหาย่อย" required className="flex-1 min-w-37.5 p-2 border rounded-lg dark:bg-gray-800 dark:text-white" value={itemForm.title} onChange={e=>setItemForm({...itemForm, title: e.target.value})} />
                       <select className="p-2 border rounded-lg dark:bg-gray-800 dark:text-white" value={itemForm.item_type} onChange={e=>setItemForm({...itemForm, item_type: e.target.value})}>
                         <option value="video">วิดีโอ (Video)</option>
                         <option value="file">เอกสาร (File)</option>
                         <option value="exam">ข้อสอบ (Exam)</option>
                       </select>
-                      <input type="text" placeholder="URL ของเนื้อหา" required className="flex-1 min-w-[200px] p-2 border rounded-lg dark:bg-gray-800 dark:text-white" value={itemForm.content_url} onChange={e=>setItemForm({...itemForm, content_url: e.target.value})} />
+                      <input type="text" placeholder="URL ของเนื้อหา" required className="flex-1 min-w-50 p-2 border rounded-lg dark:bg-gray-800 dark:text-white" value={itemForm.content_url} onChange={e=>setItemForm({...itemForm, content_url: e.target.value})} />
                       <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 font-bold rounded-lg transition">เพิ่มเนื้อหา</button>
                     </form>
                   </div>
