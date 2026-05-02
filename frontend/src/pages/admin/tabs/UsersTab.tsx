@@ -4,7 +4,7 @@ import api from '../../../services/api';
 
 interface User {
   id: string;
-  user_id?: string; // เพิ่มฟิลด์ user_id
+  user_id?: string;
   email?: string;
   username?: string;
   role: string;
@@ -14,7 +14,6 @@ interface User {
 export default function UsersTab() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   // === Wallet Modal State ===
@@ -23,7 +22,7 @@ export default function UsersTab() {
 
   // === Role Modal State ===
   const [roleModal, setRoleModal] = useState(false);
-  const [newRole, setNewRole] = useState<string>('customer');
+  const [newRole, setNewRole] = useState<string>('student');
 
   const fetchUsers = async () => {
     try {
@@ -38,11 +37,11 @@ export default function UsersTab() {
     }
   };
 
-  useEffect(() => { 
-    fetchUsers(); 
-  }, []);
+  useEffect(() => {
+     fetchUsers();
+   }, []);
 
-  // --- Handlers สำหรับเงิน ---
+  // --- Handlers จัดการ Wallet ---
   const openWalletModal = (user: User) => {
     setSelectedUser(user);
     setNewBalance(user.balance || 0);
@@ -53,7 +52,6 @@ export default function UsersTab() {
     e.preventDefault();
     if (!selectedUser) return;
     
-    // เลือกใช้ user_id ก่อนเสมอ ถ้าไม่มีถึงจะใช้ id
     const targetId = selectedUser.user_id || selectedUser.id;
     
     try {
@@ -67,10 +65,10 @@ export default function UsersTab() {
     }
   };
 
-  // --- Handlers สำหรับ Role ---
+  // --- Handlers จัดการ Role ---
   const openRoleModal = (user: User) => {
     setSelectedUser(user);
-    setNewRole(user.role || 'customer');
+    setNewRole(user.role || 'student');
     setRoleModal(true);
   };
 
@@ -78,27 +76,25 @@ export default function UsersTab() {
     e.preventDefault();
     if (!selectedUser) return;
 
-    // เลือกใช้ user_id ก่อนเสมอ ถ้าไม่มีถึงจะใช้ id
     const targetId = selectedUser.user_id || selectedUser.id;
-
     try {
       await api.put(`/api/admin/users/${targetId}/role`, { role: newRole });
       setRoleModal(false);
       fetchUsers();
-      alert('อัปเดตสิทธิ์การใช้งานสำเร็จ');
+      alert('อัปเดตสิทธิ์สำเร็จ');
     } catch (err) {
       console.error(err);
-      alert('เกิดข้อผิดพลาดในการอัปเดตสิทธิ์การใช้งาน');
+      alert('เกิดข้อผิดพลาดในการอัปเดตสิทธิ์');
     }
   };
 
   if (loading) {
-    return <div className="p-8 text-center text-gray-500 dark:text-gray-400">กำลังโหลดข้อมูลผู้ใช้งาน...</div>;
+    return <div className="p-8 text-center text-gray-500 dark:text-gray-400">กำลังโหลด...</div>;
   }
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-      <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">จัดการผู้ใช้งาน สิทธิ์ & การเงิน</h2>
+      <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">จัดการผู้ใช้งาน</h2>
 
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
@@ -115,13 +111,12 @@ export default function UsersTab() {
             {users.length === 0 ? (
               <tr>
                 <td colSpan={5} className="p-8 text-center text-gray-500 dark:text-gray-400">
-                  ไม่มีข้อมูลผู้ใช้งาน
+                  ไม่พบผู้ใช้งานในระบบ
                 </td>
               </tr>
             ) : (
               users.map(u => (
                 <tr key={u.user_id || u.id} className="hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors">
-                  {/* แสดง user_id เป็นหลัก */}
                   <td className="p-4 text-gray-500 dark:text-gray-400 text-xs font-mono">
                     {u.user_id || u.id}
                   </td>
@@ -129,27 +124,26 @@ export default function UsersTab() {
                   <td className="p-4">
                     <span className={`px-2 py-1 rounded text-xs font-bold ${
                       u.role === 'admin' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : 
-                      u.role === 'owner' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
-                      u.role === 'center' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' :
-                      u.role === 'rider' ? 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400' :
+                      u.role === 'tutor' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
+                      u.role === 'student' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
                       'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
                     }`}>
-                      {u.role ? u.role.toUpperCase() : 'CUSTOMER'}
+                      {u.role ? u.role.toUpperCase() : 'STUDENT'}
                     </span>
                   </td>
                   <td className="p-4 font-bold text-green-600 dark:text-green-400">
-                    ฿{(u.balance || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                     ฿{(u.balance || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </td>
                   <td className="p-4 flex justify-end gap-2">
                     <button 
-                      onClick={() => openRoleModal(u)} 
-                      className="px-3 py-1.5 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-400 rounded-lg text-sm font-medium transition-colors"
+                       onClick={() => openRoleModal(u)} 
+                       className="px-3 py-1.5 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-400 rounded-lg text-sm font-medium transition-colors"
                     >
-                      จัดการสิทธิ์
+                      เปลี่ยนสิทธิ์
                     </button>
                     <button 
-                      onClick={() => openWalletModal(u)} 
-                      className="px-3 py-1.5 bg-yellow-100 hover:bg-yellow-200 dark:bg-yellow-900/30 dark:hover:bg-yellow-900/50 text-yellow-700 dark:text-yellow-400 rounded-lg text-sm font-medium transition-colors"
+                       onClick={() => openWalletModal(u)} 
+                       className="px-3 py-1.5 bg-yellow-100 hover:bg-yellow-200 dark:bg-yellow-900/30 dark:hover:bg-yellow-900/50 text-yellow-700 dark:text-yellow-400 rounded-lg text-sm font-medium transition-colors"
                     >
                       จัดการเงิน
                     </button>
@@ -162,27 +156,27 @@ export default function UsersTab() {
       </div>
 
       {/* ========================================== */}
-      {/* Modal แก้ไขกระเป๋าเงิน (Wallet) */}
+      {/* Modal จัดการยอดเงิน (Wallet) */}
       {/* ========================================== */}
       {walletModal && selectedUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-sm shadow-2xl p-6">
             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">ปรับปรุงยอดเงิน</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">บัญชี: {selectedUser.email || selectedUser.username}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">ผู้ใช้: {selectedUser.email || selectedUser.username}</p>
             
             <form onSubmit={handleUpdateWallet}>
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  ยอดเงินคงเหลือ (บาท)
+                  ยอดเงินล่าสุด (บาท)
                 </label>
                 <input 
-                  type="number" 
-                  step="0.01"
+                   type="number" 
+                   step="0.01"
                   required 
-                  value={newBalance} 
-                  onChange={e => setNewBalance(parseFloat(e.target.value) || 0)} 
-                  className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white text-lg font-bold focus:ring-2 focus:ring-blue-500 outline-none" 
-                />
+                   value={newBalance} 
+                   onChange={e => setNewBalance(parseFloat(e.target.value) || 0)} 
+                   className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white text-lg font-bold focus:ring-2 focus:ring-blue-500 outline-none" 
+                 />
               </div>
               
               <div className="flex justify-end gap-3">
@@ -199,28 +193,26 @@ export default function UsersTab() {
       )}
 
       {/* ========================================== */}
-      {/* Modal แก้ไขสิทธิ์ผู้ใช้ (Role) */}
+      {/* Modal เปลี่ยนสิทธิ์ (Role) */}
       {/* ========================================== */}
       {roleModal && selectedUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-sm shadow-2xl p-6">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">แก้ไขสิทธิ์ผู้ใช้งาน</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">บัญชี: {selectedUser.email || selectedUser.username}</p>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">เปลี่ยนสิทธิ์ผู้ใช้</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">ผู้ใช้: {selectedUser.email || selectedUser.username}</p>
             
             <form onSubmit={handleUpdateRole}>
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  เลือกสิทธิ์ (Role)
+                    เลือกสิทธิ์ (Role)
                 </label>
                 <select 
-                  value={newRole} 
-                  onChange={e => setNewRole(e.target.value)} 
-                  className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white text-base focus:ring-2 focus:ring-blue-500 outline-none"
+                   value={newRole} 
+                   onChange={e => setNewRole(e.target.value)} 
+                   className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white text-base focus:ring-2 focus:ring-blue-500 outline-none"
                 >
-                  <option value="customer">Customer (ลูกค้า)</option>
-                  <option value="owner">Owner (เจ้าของร้านค้า)</option>
-                  <option value="center">Center (ศูนย์กระจายสินค้า)</option>
-                  <option value="rider">Rider (พนักงานขนส่ง/ไรเดอร์)</option>
+                  <option value="student">Student (นักเรียน)</option>
+                  <option value="tutor">Tutor (ผู้สอน)</option>
                   <option value="admin">Admin (ผู้ดูแลระบบ)</option>
                 </select>
               </div>
@@ -237,7 +229,6 @@ export default function UsersTab() {
           </div>
         </div>
       )}
-
     </div>
   );
 }
