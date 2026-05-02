@@ -54,7 +54,7 @@ export default function Layout() {
     }
   }, [location.pathname]);
 
-  const role = token ? (owner?.role || 'user') : 'guest';
+  const role = token ? (owner?.role || 'student') : 'guest';
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -103,13 +103,13 @@ export default function Layout() {
                 <div className="p-2 bg-brand/10 rounded-xl mr-3 group-hover:scale-105 transition-transform">
                   <img src={logoImg} alt="Logo" className="w-8 h-8 object-contain" />
                 </div>
-                <span className="text-2xl font-black tracking-tight bg-clip-text text-transparent bg-linear-to-r from-brand to-purple-600">TeachTest</span>
+                <span className="text-2xl font-black tracking-tight bg-clip-text text-transparent bg-linear-to-rrom-brand to-purple-600">TeachTest</span>
               </Link>
               
               <div className="hidden lg:flex items-center space-x-8 text-base">
-                <Link to="/about" className={isActive('/about')}>About</Link>
-                <Link to="/contact" className={isActive('/contact')}>Contact</Link>
-                <Link to="/download" className={isActive('/download')}>Download</Link>
+                <Link to="/about" className={isActive('/about')}>เกี่ยวกับเรา</Link>
+                <Link to="/contact" className={isActive('/contact')}>ติดต่อ</Link>
+                <Link to="/download" className={isActive('/download')}>ดาวน์โหลดแอป</Link>
                 
                 {role !== 'guest' && (
                   <>
@@ -118,6 +118,7 @@ export default function Layout() {
                   </>
                 )}
                 
+                {/* แก้ไข: ตรวจสอบสิทธิ์ tutor ชัดเจน */}
                 {(role === 'tutor' || role === 'admin') && (
                   <Link to="/tutor" className={isActive('/tutor')}>Tutor Dashboard</Link>
                 )}
@@ -184,9 +185,9 @@ export default function Layout() {
         {mobileMenuOpen && (
           <div className="lg:hidden bg-bg-card border-t border-outline shadow-2xl absolute w-full left-0 z-40 transition-colors">
             <div className="px-6 py-6 space-y-2">
-              <Link to="/about" className={isMobileActive('/about')}>About</Link>
-              <Link to="/contact" className={isMobileActive('/contact')}>Contact</Link>
-              <Link to="/download" className={isMobileActive('/download')}>Download</Link>
+              <Link to="/about" className={isMobileActive('/about')}>เกี่ยวกับเรา</Link>
+              <Link to="/contact" className={isMobileActive('/contact')}>ติดต่อ</Link>
+              <Link to="/download" className={isMobileActive('/download')}>ดาวน์โหลดแอป</Link>
               
               {role !== 'guest' && (
                 <>

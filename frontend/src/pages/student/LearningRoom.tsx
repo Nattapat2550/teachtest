@@ -9,12 +9,10 @@ export default function LearningRoom() {
   const [activeItem, setActiveItem] = useState<any>(null);
 
   useEffect(() => {
-    // สมมติว่ามี API ดึงข้อมูลห้องเรียนผ่าน enrollment_id
     studentApi.getMyLearning().then(res => {
       const current = res.data.find((e: any) => e.id === enrollmentId);
       if (current) {
         setLearningData(current);
-        // เลือกเนื้อหาแรกอัตโนมัติ
         if (current.course.playlists?.[0]?.items?.[0]) {
           setActiveItem(current.course.playlists[0].items[0]);
         }
@@ -22,12 +20,11 @@ export default function LearningRoom() {
         navigate('/my-learning');
       }
     });
-  }, [enrollmentId]);
+  }, [enrollmentId, navigate]);
 
   const handleMarkProgress = async (itemId: string) => {
     try {
       await studentApi.updateProgress(enrollmentId!, itemId);
-      // อัปเดต UI ชั่วคราวเพื่อให้ผู้ใช้เห็นว่าติ๊กผ่านแล้ว
       const updatedData = { ...learningData };
       updatedData.progress = updatedData.progress || [];
       updatedData.progress.push({ item_id: itemId, is_completed: true });
@@ -41,92 +38,103 @@ export default function LearningRoom() {
     return learningData?.progress?.some((p: any) => p.item_id === itemId && p.is_completed);
   };
 
-  if (!learningData) return <div className="p-10 text-center">กำลังเตรียมห้องเรียน...</div>;
+  // แก้ไข: เช็คว่าดูวิดีโอถึง 95% ของความยาวคลิปหรือยัง
+  const handleTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
+    const video = e.target as HTMLVideoElement;
+    const percentWatched = video.currentTime / video.duration;
+    if (percentWatched >= 0.95 && !isCompleted(activeItem.id)) {
+      handleMarkProgress(activeItem.id);
+    }
+  };
+
+  if (!learningData) return <div className="flex justify-center items-center h-screen">กำลังโหลด...</div>;
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-gray-50 dark:bg-gray-900 pt-20">
-      {/* Sidebar: สารบัญหลักสูตร */}
-      <div className="w-full md:w-80 bg-white dark:bg-gray-800 border-r dark:border-gray-700 h-[calc(100vh-80px)] overflow-y-auto">
-        <div className="p-6 border-b dark:border-gray-700">
-          <h2 className="text-xl font-bold dark:text-white leading-snug">{learningData.course.title}</h2>
+    <div className="flex flex-col md:flex-row min-h-[calc(100vh-80px)] bg-gray-50 dark:bg-gray-900">
+      
+      {/* Sidebar: Course Playlist */}
+      <div className="w-full md:w-96 bg-white dark:bg-gray-800 border-r dark:border-gray-700 flex flex-col shadow-lg z-10">
+        <div className="p-6 bg-linear-to-r from-blue-600 to-indigo-600 text-white">
+          <h2 className="text-xl font-black leading-snug">{learningData.course.title}</h2>
         </div>
         
-        {learningData.course.playlists?.map((pl: any) => (
-          <div key={pl.id} className="border-b dark:border-gray-700">
-            <div className="px-6 py-4 bg-gray-100 dark:bg-gray-900 font-bold dark:text-gray-200">
-              {pl.title}
+        <div className="flex-1 overflow-y-auto">
+          {learningData.course.playlists?.map((pl: any) => (
+            <div key={pl.id} className="border-b dark:border-gray-700">
+              <div className="px-6 py-4 bg-gray-100 dark:bg-gray-900/50 font-bold dark:text-gray-200 text-sm tracking-wide">
+                {pl.title}
+              </div>
+              <div className="flex flex-col">
+                {pl.items?.map((item: any) => {
+                  const completed = isCompleted(item.id);
+                  const active = activeItem?.id === item.id;
+                  return (
+                    <button 
+                      key={item.id}
+                      onClick={() => setActiveItem(item)}
+                      className={`w-full text-left px-6 py-4 flex items-start gap-4 transition-all border-l-4 ${
+                        active ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-600' : 'border-transparent hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      <div className={`mt-0.5 shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                        completed ? 'bg-green-500 border-green-500' : 'border-gray-300 dark:border-gray-600'
+                      }`}>
+                        {completed && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>}
+                      </div>
+                      <div className="flex flex-col">
+                        <span className={`text-sm font-semibold ${active ? 'text-blue-700 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'}`}>
+                          {item.title}
+                        </span>
+                        <span className="text-xs text-gray-400 mt-1 uppercase tracking-wider">{item.item_type}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-            <div>
-              {pl.items?.map((item: any) => (
-                <button 
-                  key={item.id}
-                  onClick={() => setActiveItem(item)}
-                  className={`w-full text-left px-6 py-4 flex items-center gap-3 transition-colors ${
-                    activeItem?.id === item.id ? 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-600' : 'hover:bg-gray-50 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  <input 
-                    type="checkbox" 
-                    className="w-5 h-5 accent-blue-600"
-                    checked={isCompleted(item.id)}
-                    onChange={() => handleMarkProgress(item.id)}
-                  />
-                  <span className="text-sm font-medium dark:text-gray-300">
-                    {item.item_type === 'video' ? '🎥' : item.item_type === 'file' ? '📄' : '📝'} {item.title}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
-      {/* Main Content: แสดงวิดีโอ ไฟล์ หรือข้อสอบ */}
-      <div className="flex-1 p-6 lg:p-12 overflow-y-auto h-[calc(100vh-80px)]">
+      {/* Main Content */}
+      <div className="flex-1 p-6 lg:p-10 overflow-y-auto bg-gray-50 dark:bg-gray-900">
         {activeItem ? (
-          <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-sm border dark:border-gray-700">
-            <h1 className="text-3xl font-black mb-6 dark:text-white">{activeItem.title}</h1>
+          <div className="max-w-5xl mx-auto">
+            <h1 className="text-3xl font-black mb-8 text-gray-900 dark:text-white">{activeItem.title}</h1>
             
             {activeItem.item_type === 'video' && (
-              <div className="aspect-video bg-black rounded-xl overflow-hidden mb-6">
-                {/* รองรับ Event onEnded เพื่อบันทึก Progress อัตโนมัติเมื่อดูจบ */}
+              <div className="bg-black rounded-2xl overflow-hidden shadow-2xl ring-1 ring-gray-900/10 mb-8">
                 <video 
                   controls 
-                  className="w-full h-full" 
+                  className="w-full aspect-video outline-none" 
                   src={activeItem.content_url} 
-                  onEnded={() => handleMarkProgress(activeItem.id)}
+                  onTimeUpdate={handleTimeUpdate}
                 />
               </div>
             )}
 
             {activeItem.item_type === 'file' && (
-              <div className="p-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-2xl text-center">
-                <span className="text-6xl mb-4 block">📁</span>
+              <div className="bg-white dark:bg-gray-800 p-12 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-sm text-center">
+                <div className="w-24 h-24 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <svg className="w-10 h-10 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">เอกสารประกอบการเรียน</h3>
                 <a 
                   href={activeItem.content_url} 
                   target="_blank" rel="noreferrer"
                   onClick={() => handleMarkProgress(activeItem.id)}
-                  className="inline-block bg-blue-600 text-white px-8 py-3 rounded-full font-bold shadow-md hover:bg-blue-700"
+                  className="inline-flex items-center gap-2 bg-blue-600 text-white px-8 py-4 rounded-xl font-bold shadow-lg hover:bg-blue-700 hover:-translate-y-1 transition-all"
                 >
-                  ดาวน์โหลดเอกสารประกอบการเรียน
+                  ดาวน์โหลดเอกสาร
                 </a>
-              </div>
-            )}
-
-            {activeItem.item_type === 'exam' && (
-              <div className="p-8 bg-orange-50 dark:bg-orange-900/20 rounded-2xl text-center border border-orange-200 dark:border-orange-800">
-                <h3 className="text-xl font-bold text-orange-800 dark:text-orange-400 mb-4">📝 แบบทดสอบความรู้</h3>
-                <button 
-                  onClick={() => handleMarkProgress(activeItem.id)}
-                  className="bg-orange-500 text-white px-8 py-3 rounded-full font-bold shadow-md hover:bg-orange-600"
-                >
-                  เริ่มทำข้อสอบ
-                </button>
               </div>
             )}
           </div>
         ) : (
-          <div className="text-center text-gray-500 mt-20">กรุณาเลือกบทเรียนจากเมนูด้านซ้าย</div>
+          <div className="flex flex-col items-center justify-center h-full text-gray-400">
+            <svg className="w-20 h-20 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <p className="text-xl font-medium">เลือกบทเรียนจากเมนูด้านซ้ายเพื่อเริ่มต้น</p>
+          </div>
         )}
       </div>
     </div>

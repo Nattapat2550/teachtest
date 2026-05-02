@@ -8,6 +8,7 @@ export default function CourseDetail() {
   const [course, setCourse] = useState<any>(null);
   const [promoCode, setPromoCode] = useState('');
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
     if (id) {
@@ -19,17 +20,24 @@ export default function CourseDetail() {
   }, [id]);
 
   const handleEnroll = async () => {
+    setErrorMsg('');
     try {
       await studentApi.enrollCourse({ course_id: course.id, promo_code: promoCode });
-      alert('ลงทะเบียนสำเร็จ! เริ่มเรียนได้เลย');
+      alert('ลงทะเบียนสำเร็จ! กำลังพาไปห้องเรียน...');
       navigate('/my-learning');
     } catch (err: any) {
-      alert(err.response?.data?.error || 'เกิดข้อผิดพลาดในการซื้อหลักสูตร (โค้ดอาจไม่ถูกต้อง)');
+      const msg = err.response?.data?.error || 'เกิดข้อผิดพลาด';
+      // ดัก Error จาก Backend ถ้าซื้อซ้ำ
+      if (msg.includes('already enrolled')) {
+        setErrorMsg('คุณมีคอร์สนี้อยู่แล้ว กรุณาไปที่ "ห้องเรียนของฉัน"');
+      } else {
+        setErrorMsg(msg);
+      }
     }
   };
 
   if (loading) return <div className="text-center mt-20">กำลังโหลด...</div>;
-  if (!course) return <div className="text-center mt-20">ไม่พบหลักสูตร</div>;
+  if (!course) return <div className="text-center mt-20">ไม่พบคอร์สเรียน</div>;
 
   return (
     <div className="max-w-4xl mx-auto p-6 mt-8">
@@ -44,18 +52,24 @@ export default function CourseDetail() {
             <div className="flex gap-4 mb-6">
               <input 
                 type="text" 
-                placeholder="กรอกโค้ดส่วนลด (ถ้ามี)" 
-                className="flex-1 p-3 rounded-xl border outline-none dark:bg-gray-800 dark:text-white"
+                placeholder="รหัสโปรโมชั่น (ถ้ามี)"
+                className="flex-1 p-3 rounded-xl border outline-none dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500"
                 value={promoCode}
                 onChange={e => setPromoCode(e.target.value)}
               />
             </div>
             
+            {errorMsg && (
+              <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-xl text-sm font-bold text-center">
+                {errorMsg}
+              </div>
+            )}
+
             <button 
               onClick={handleEnroll}
               className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg transition-all"
             >
-              ซื้อหลักสูตรนี้
+              ซื้อคอร์สเรียนนี้
             </button>
           </div>
         </div>
