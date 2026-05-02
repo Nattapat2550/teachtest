@@ -12,6 +12,9 @@ const CompleteProfilePage = lazy(() => import('./pages/CompleteProfilePage'));
 const HomePage = lazy(() => import('./pages/HomePage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 
+// Admin Component (เพิ่มตรงนี้)
+const AdminPage = lazy(() => import('./pages/admin/AdminPage'));
+
 // LMS Components
 const CourseCatalog = lazy(() => import('./pages/student/CourseCatalog'));
 const CourseDetail = lazy(() => import('./pages/student/CourseDetail'));
@@ -36,9 +39,12 @@ const App: React.FC = () => {
           <Route path="/courses/:id" element={<ProtectedRoute><CourseDetail /></ProtectedRoute>} />
           <Route path="/my-learning" element={<ProtectedRoute roles={['student', 'admin', 'tutor']}><MyLearning /></ProtectedRoute>} />
           <Route path="/learn/:enrollmentId" element={<ProtectedRoute roles={['student', 'admin', 'tutor']}><LearningRoom /></ProtectedRoute>} />
-
+          
           {/* Tutor Routes */}
           <Route path="/tutor" element={<ProtectedRoute roles={['tutor', 'admin']}><TutorDashboard /></ProtectedRoute>} />
+          
+          {/* Admin Routes (เพิ่มตรงนี้) */}
+          <Route path="/admin" element={<ProtectedRoute roles={['admin']}><AdminPage /></ProtectedRoute>} />
           
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

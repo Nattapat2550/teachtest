@@ -25,14 +25,20 @@ export default function LoginPage() {
       
       localStorage.setItem('token', data.token);
       localStorage.setItem('owner', JSON.stringify(data.owner));
-      window.location.href = '/home';
+      
+      // แก้ไข: เช็ค Role ของ Owner เพื่อ Redirect ให้ถูกหน้า
+      if (data.owner.role === 'admin') {
+        window.location.href = '/admin';
+      } else {
+        window.location.href = '/home';
+      }
+      
     } catch (err: any) {
       setError(err.response?.data?.error || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง');
     }
   };
 
   const handleGoogleLogin = () => {
-    // แก้ไข: ใช้ api.defaults.baseURL เพื่อให้ทำงานได้ทั้ง Local และ Prod
     window.location.href = `${api.defaults.baseURL}/api/auth/google`;
   };
 
