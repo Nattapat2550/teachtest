@@ -1,63 +1,105 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import api from '../services/api';
+import { useNavigate, Link } from 'react-router-dom';
+import axios from 'axios';
 
-const RegisterPage = () => {
-  const navigate = useNavigate();
+export default function RegisterPage() {
   const [email, setEmail] = useState('');
-  const [msg, setMsg] = useState<string | null>(null);
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const handleSubmit = async (e: any) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMsg(null);
+    setError('');
+
+    if (password !== confirmPassword) {
+      setError('รหัสผ่านไม่ตรงกัน');
+      return;
+    }
+
+    setIsLoading(true);
+
     try {
-      await api.post('/api/auth/register', { email: email.trim() });
-      sessionStorage.setItem('pendingEmail', email.trim());
-      navigate('/check');
+      // ส่งคำขอ Registration เริ่มต้น (เก็บ Verification Code บน Memory ฝั่ง Backend)
+      await axios.post('/api/auth/register', { email, password });
+      
+      // ข้ามไปทำ Verification ให้เสร็จสมบูรณ์ เพื่อลดการ Write ขยะลงฐานข้อมูล
+      navigate('/check-code', { state: { email } });
     } catch (err: any) {
-      setMsg(err.response?.data?.error || 'Register failed');
+      setError(err.response?.data?.message || 'เกิดข้อผิดพลาดในการสมัครสมาชิก โปรดลองใหม่อีกครั้ง');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleGoogle = () => {
-    window.location.href = `${api.defaults.baseURL}/api/auth/google`;
-  };
-
   return (
-    <div className="max-w-md w-full mx-auto mt-10 p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700">
-      <h2 className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-6">สร้างบัญชีใหม่</h2>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="max-w-md w-full p-8 bg-white rounded-lg shadow-md">
+        <h2 className="text-2xl font-bold text-center text-gray-800 mb-8">สมัครสมาชิก</h2>
+        
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-md text-center">
+            {error}
+          </div>
+        )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">อีเมล</label>
-          <input
-            type="email" required value={email} onChange={(e) => setEmail(e.target.value.trim())}
-            className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-gray-900 dark:text-white"
-          />
+        <form onSubmit={handleRegister} className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">อีเมล</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 outline-none"
+              placeholder="example@email.com"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">รหัสผ่าน</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 outline-none"
+              placeholder="••••••••"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">ยืนยันรหัสผ่าน</label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              minLength={6}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 outline-none"
+              placeholder="••••••••"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition duration-200 disabled:opacity-50"
+          >
+            {isLoading ? 'กำลังดำเนินการ...' : 'สมัครสมาชิก'}
+          </button>
+        </form>
+
+        <div className="mt-6 text-center text-sm text-gray-600">
+          มีบัญชีอยู่แล้ว?{' '}
+          <Link to="/login" className="text-blue-600 hover:underline font-medium">
+            เข้าสู่ระบบ
+          </Link>
         </div>
-
-        <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition-colors">
-          ส่งรหัสยืนยัน
-        </button>
-      </form>
-
-      <div className="flex items-center my-6 text-gray-400">
-        <div className="grow border-t border-gray-300 dark:border-gray-600"></div>
-        <span className="px-3 text-sm">หรือ</span>
-        <div className="grow border-t border-gray-300 dark:border-gray-600"></div>
       </div>
-
-      <button onClick={handleGoogle} className="w-full flex items-center justify-center gap-2 border-2 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2.5 rounded-lg transition-colors">
-        ดำเนินการต่อด้วย Google
-      </button>
-
-      {msg && (
-        <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg border border-red-200 dark:border-red-800 text-center">
-          {msg}
-        </div>
-      )}
     </div>
   );
-};
-
-export default RegisterPage;
+}
