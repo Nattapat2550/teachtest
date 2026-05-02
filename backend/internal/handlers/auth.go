@@ -241,6 +241,12 @@ func (h *Handler) AuthCompleteProfile(w http.ResponseWriter, r *http.Request) {
 	}
 	h.setAuthCookie(w, token, req.Remember)
 
+	_, _ = h.TeachDB.ExecContext(ctx, `
+    INSERT INTO user_roles (user_id, role) 
+    VALUES ($1, 'student') 
+    ON CONFLICT (user_id) DO NOTHING
+	`, randomUserID)
+
 	WriteJSON(w, http.StatusOK, map[string]any{
 		"ok":    true,
 		"token": token,

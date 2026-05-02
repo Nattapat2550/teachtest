@@ -25,8 +25,9 @@ export default function LoginPage() {
       
       localStorage.setItem('token', data.token);
       localStorage.setItem('owner', JSON.stringify(data.owner));
+      // รับประกันการบันทึก Role
+      localStorage.setItem('role', data.owner.role || 'student');
       
-      // แก้ไข: เช็ค Role ของ Owner เพื่อ Redirect ให้ถูกหน้า
       if (data.owner.role === 'admin') {
         window.location.href = '/admin';
       } else {

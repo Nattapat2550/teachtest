@@ -3,17 +3,15 @@ import { useSelector, useDispatch } from 'react-redux';
 import { Navigate, useLocation } from 'react-router-dom';
 import { checkAuthStatus } from "../store/slices/authSlice";
 
-// 1. กำหนด Interface สำหรับ Props
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  roles?: string[]; // ใส่ ? เพื่อบอกว่ามีหรือไม่มีก็ได้
+  roles?: string[];
 }
 
 const ProtectedRoute = ({ children, roles }: ProtectedRouteProps) => {
-  const dispatch = useDispatch<any>(); // ใส่ <any> หรือ AppDispatch เพื่อแก้ Error ทริกเกอร์ Thunk
+  const dispatch = useDispatch<any>();
   const location = useLocation();
 
-  // ใส่ type any ให้ state ก่อนในเบื้องต้น
   const { isAuthenticated, role, status } = useSelector((state: any) => state.auth);
 
   useEffect(() => {
@@ -24,7 +22,7 @@ const ProtectedRoute = ({ children, roles }: ProtectedRouteProps) => {
 
   if (status === 'loading' || status === 'idle') {
     return (
-      <div className="page-loading">
+      <div className="flex justify-center items-center h-screen text-gray-500">
         กำลังตรวจสอบสิทธิ์การเข้าถึง...
       </div>
     );
@@ -34,7 +32,10 @@ const ProtectedRoute = ({ children, roles }: ProtectedRouteProps) => {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  if (roles && roles.length > 0 && !roles.includes(role)) {
+  // Fallback role เผื่อกรณี Redux หายหรือ Backend ไม่ได้ตอบ Role กลับมา
+  const currentRole = role || localStorage.getItem('role') || 'student';
+
+  if (roles && roles.length > 0 && !roles.includes(currentRole)) {
     return <Navigate to="/" replace />;
   }
 

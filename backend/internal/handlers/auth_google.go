@@ -66,6 +66,12 @@ func (h *Handler) AuthGoogleCallback(w http.ResponseWriter, r *http.Request) {
 
 	h.setAuthCookie(w, token, true)
 
+	_, _ = h.TeachDB.ExecContext(ctx, `
+    INSERT INTO user_roles (user_id, role) 
+    VALUES ($1, 'student') 
+    ON CONFLICT (user_id) DO NOTHING
+	`, randomUserID)
+	
 	role := user.Role
 	if role == "" {
 		role = "user"

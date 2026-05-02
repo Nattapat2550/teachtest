@@ -26,9 +26,17 @@ func setupLMSRoutes(h *handlers.Handler) func(chi.Router) {
 			
 			r.Get("/tutor/courses", h.TutorGetMyCourses)
 			r.Post("/tutor/courses", h.TutorCreateCourse)
-			r.Post("/tutor/courses/{courseId}/playlists", h.TutorCreatePlaylist)
-			r.Post("/tutor/playlists/{playlistId}/items", h.TutorCreatePlaylistItem)
 			r.Post("/tutor/courses/{courseId}/promos", h.TutorCreatePromoCode)
+
+			// 🌟 Playlist Routes
+			r.Post("/tutor/courses/{courseId}/playlists", h.TutorCreatePlaylist)
+			r.Put("/tutor/playlists/{playlistId}", h.TutorUpdatePlaylist) // เพิ่มเส้นทางใหม่
+			r.Delete("/tutor/playlists/{playlistId}", h.TutorDeletePlaylist) // เพิ่มเส้นทางใหม่
+
+			// 🌟 Items Routes
+			r.Post("/tutor/playlists/{playlistId}/items", h.TutorCreatePlaylistItem)
+			r.Put("/tutor/items/{itemId}", h.TutorUpdatePlaylistItem) // เพิ่มเส้นทางใหม่
+			r.Delete("/tutor/items/{itemId}", h.TutorDeletePlaylistItem) // เพิ่มเส้นทางใหม่
 		})
 	}
 }

@@ -4,7 +4,7 @@ import api from '../../services/api';
 interface AuthState {
   isAuthenticated: boolean;
   role: string | null;
-  userId: string | null; // string UUID
+  userId: string | null;
   status: 'idle' | 'loading' | 'succeeded' | 'failed';
   error: string | null;
 }
@@ -74,10 +74,13 @@ const authSlice = createSlice({
       })
       .addCase(checkAuthStatus.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        // user_id (string) fallback
         const { authenticated, role, id, user_id } = action.payload || {};
         state.isAuthenticated = !!authenticated;
-        state.role = authenticated ? role : null;
+        
+        // รับประกันการหา Role ให้เจอ
+        const fetchedRole = role || action.payload?.owner?.role || localStorage.getItem('role') || 'student';
+        state.role = authenticated ? fetchedRole : null;
+        
         state.userId = authenticated ? (user_id || id) : null;
       })
       .addCase(checkAuthStatus.rejected, (state) => {
@@ -94,17 +97,16 @@ const authSlice = createSlice({
         if (action.payload.ok && action.payload.owner) {
           state.status = 'succeeded';
           state.isAuthenticated = true;
-          state.role = action.payload.owner.role;
           
-          // user_id State Database
+          const payloadRole = action.payload.owner.role || 'student';
+          state.role = payloadRole;
+          
           state.userId = action.payload.owner.user_id || action.payload.owner.id;
+          
           if (action.payload.token) {
             localStorage.setItem('token', action.payload.token);
           }
-          if (action.payload.owner.role) {
-            localStorage.setItem('role', action.payload.owner.role);
-          }
-          // บันทึกข้อมูล owner ลง LocalStorage
+          localStorage.setItem('role', payloadRole);
           localStorage.setItem('owner', JSON.stringify(action.payload.owner));
           
           window.dispatchEvent(new Event('storage'));
@@ -121,7 +123,6 @@ const authSlice = createSlice({
         
         localStorage.removeItem('token');
         localStorage.removeItem('role');
-        // ลบข้อมูล owner ออกจาก LocalStorage เมื่อออกจากระบบ
         localStorage.removeItem('owner');
       });
   }

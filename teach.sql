@@ -125,33 +125,33 @@ CREATE TABLE documents (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE promo_code_uses (
-    id SERIAL PRIMARY KEY,
-    promo_code_id INT REFERENCES promo_codes(id) ON DELETE CASCADE,
-    student_id VARCHAR(50) NOT NULL,
-    enrollment_id INT REFERENCES course_enrollments(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    promo_code_id UUID REFERENCES promo_codes(id) ON DELETE CASCADE,
+    student_id UUID NOT NULL,
+    enrollment_id UUID REFERENCES course_enrollments(id) ON DELETE CASCADE,
     used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- สร้างตารางระบบข้อสอบสไตล์ Google Form (ข้อ 4)
 CREATE TABLE exams (
-    id SERIAL PRIMARY KEY,
-    playlist_item_id INT REFERENCES playlist_items(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    playlist_item_id UUID REFERENCES playlist_items(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
     description TEXT,
     passing_score INT DEFAULT 50
 );
 
 CREATE TABLE exam_questions (
-    id SERIAL PRIMARY KEY,
-    exam_id INT REFERENCES exams(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    exam_id UUID REFERENCES exams(id) ON DELETE CASCADE,
     question_text TEXT NOT NULL,
     question_type VARCHAR(50) DEFAULT 'multiple_choice', -- 'multiple_choice', 'short_answer'
     sort_order INT DEFAULT 0
 );
 
 CREATE TABLE exam_choices (
-    id SERIAL PRIMARY KEY,
-    question_id INT REFERENCES exam_questions(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    question_id UUID REFERENCES exam_questions(id) ON DELETE CASCADE,
     choice_text TEXT NOT NULL,
     is_correct BOOLEAN DEFAULT false
 );

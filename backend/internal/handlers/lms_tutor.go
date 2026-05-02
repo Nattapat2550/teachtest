@@ -145,3 +145,60 @@ func (h *Handler) TutorCreatePromoCode(w http.ResponseWriter, r *http.Request) {
 	}
 	WriteJSON(w, http.StatusCreated, map[string]string{"message": "Promo code created"})
 }
+
+// ===== อัปเดตและลบ Playlist =====
+
+func (h *Handler) TutorUpdatePlaylist(w http.ResponseWriter, r *http.Request) {
+	playlistId := chi.URLParam(r, "playlistId")
+	var req struct {
+		Title string `json:"title"`
+	}
+	if err := ReadJSON(r, &req); err != nil {
+		return
+	}
+	_, err := h.TeachDB.Exec(`UPDATE playlists SET title = $1 WHERE id = $2`, req.Title, playlistId)
+	if err != nil {
+		h.writeError(w, http.StatusInternalServerError, "Failed to update playlist")
+		return
+	}
+	WriteJSON(w, http.StatusOK, map[string]string{"message": "Playlist updated"})
+}
+
+func (h *Handler) TutorDeletePlaylist(w http.ResponseWriter, r *http.Request) {
+	playlistId := chi.URLParam(r, "playlistId")
+	// ตาราง playlist_items อ้างอิงด้วย ON DELETE CASCADE ไว้แล้ว ลบแค่ playlist ก็พอ
+	_, err := h.TeachDB.Exec(`DELETE FROM playlists WHERE id = $1`, playlistId)
+	if err != nil {
+		h.writeError(w, http.StatusInternalServerError, "Failed to delete playlist")
+		return
+	}
+	WriteJSON(w, http.StatusOK, map[string]string{"message": "Playlist deleted"})
+}
+
+// ===== อัปเดตและลบ Playlist Items =====
+
+func (h *Handler) TutorUpdatePlaylistItem(w http.ResponseWriter, r *http.Request) {
+	itemId := chi.URLParam(r, "itemId")
+	var req struct {
+		Title string `json:"title"`
+	}
+	if err := ReadJSON(r, &req); err != nil {
+		return
+	}
+	_, err := h.TeachDB.Exec(`UPDATE playlist_items SET title = $1 WHERE id = $2`, req.Title, itemId)
+	if err != nil {
+		h.writeError(w, http.StatusInternalServerError, "Failed to update item")
+		return
+	}
+	WriteJSON(w, http.StatusOK, map[string]string{"message": "Item updated"})
+}
+
+func (h *Handler) TutorDeletePlaylistItem(w http.ResponseWriter, r *http.Request) {
+	itemId := chi.URLParam(r, "itemId")
+	_, err := h.TeachDB.Exec(`DELETE FROM playlist_items WHERE id = $1`, itemId)
+	if err != nil {
+		h.writeError(w, http.StatusInternalServerError, "Failed to delete item")
+		return
+	}
+	WriteJSON(w, http.StatusOK, map[string]string{"message": "Item deleted"})
+}
