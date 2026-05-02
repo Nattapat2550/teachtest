@@ -12,7 +12,12 @@ const CompleteProfilePage = lazy(() => import('./pages/CompleteProfilePage'));
 const HomePage = lazy(() => import('./pages/HomePage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 
-// Admin Component (เพิ่มตรงนี้)
+// Public Pages (เพิ่มตรงนี้)
+const AboutPage = lazy(() => import('./pages/AboutPage'));
+const ContactPage = lazy(() => import('./pages/ContactPage'));
+const DownloadPage = lazy(() => import('./pages/DownloadPage'));
+
+// Admin Component
 const AdminPage = lazy(() => import('./pages/admin/AdminPage'));
 
 // LMS Components
@@ -24,13 +29,18 @@ const TutorDashboard = lazy(() => import('./pages/tutor/TutorDashboard'));
 
 const App: React.FC = () => {
   return (
-    <Suspense fallback={<div className="flex justify-center items-center min-h-screen">กำลังโหลด...</div>}>
+    <Suspense fallback={<div className="flex justify-center items-center min-h-screen text-gray-500">กำลังโหลด...</div>}>
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/complete-profile" element={<CompleteProfilePage />} />
+          
+          {/* Public Pages ที่กดเข้าไม่ได้ (เพิ่ม Route ตรงนี้) */}
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/download" element={<DownloadPage />} />
           
           {/* Public / Student Routes */}
           <Route path="/home" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
@@ -43,7 +53,7 @@ const App: React.FC = () => {
           {/* Tutor Routes */}
           <Route path="/tutor" element={<ProtectedRoute roles={['tutor', 'admin']}><TutorDashboard /></ProtectedRoute>} />
           
-          {/* Admin Routes (เพิ่มตรงนี้) */}
+          {/* Admin Routes */}
           <Route path="/admin" element={<ProtectedRoute roles={['admin']}><AdminPage /></ProtectedRoute>} />
           
           <Route path="*" element={<Navigate to="/" replace />} />

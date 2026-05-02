@@ -12,12 +12,10 @@ import lightImg from '../assets/light.png';
 import darkImg from '../assets/dark.png';
 
 export default function Layout() {
-  // เรียกใช้ Hook เพื่อดักจับ Google OAuth Callback จาก URL
   useOAuthCallback();
 
   const location = useLocation();
   const token = localStorage.getItem('token');
-
   const [owner, setOwner] = useState<any>(null);
 
   useEffect(() => {
@@ -105,18 +103,25 @@ export default function Layout() {
                 <div className="p-2 bg-brand/10 rounded-xl mr-3 group-hover:scale-105 transition-transform">
                   <img src={logoImg} alt="Logo" className="w-8 h-8 object-contain" />
                 </div>
-                <span className="text-2xl font-black tracking-tight bg-clip-text text-transparent bg-linear-to-r from-brand to-purple-600">Mall</span>
+                <span className="text-2xl font-black tracking-tight bg-clip-text text-transparent bg-linear-to-r from-brand to-purple-600">TeachTest</span>
               </Link>
               
               <div className="hidden lg:flex items-center space-x-8 text-base">
                 <Link to="/about" className={isActive('/about')}>About</Link>
                 <Link to="/contact" className={isActive('/contact')}>Contact</Link>
                 <Link to="/download" className={isActive('/download')}>Download</Link>
+                
                 {role !== 'guest' && (
                   <>
-                    <Link to="/products" className={isActive('/products')}>Shop / Products</Link>
+                    <Link to="/courses" className={isActive('/courses')}>คอร์สเรียน</Link>
+                    <Link to="/my-learning" className={isActive('/my-learning')}>ห้องเรียนของฉัน</Link>
                   </>
                 )}
+                
+                {(role === 'tutor' || role === 'admin') && (
+                  <Link to="/tutor" className={isActive('/tutor')}>Tutor Dashboard</Link>
+                )}
+
                 {role === 'admin' && (
                   <Link to="/admin" className="bg-linear-to-r from-brand to-purple-600 px-5 py-2 rounded-xl text-white font-bold shadow-lg shadow-brand/30 hover:shadow-brand/50 transform hover:-translate-y-0.5 transition-all">
                     Admin Workspace
@@ -182,14 +187,22 @@ export default function Layout() {
               <Link to="/about" className={isMobileActive('/about')}>About</Link>
               <Link to="/contact" className={isMobileActive('/contact')}>Contact</Link>
               <Link to="/download" className={isMobileActive('/download')}>Download</Link>
+              
               {role !== 'guest' && (
                 <>
-                  <Link to="/products" className={isMobileActive('/products')}>Shop / Products</Link>
+                  <Link to="/courses" className={isMobileActive('/courses')}>คอร์สเรียน</Link>
+                  <Link to="/my-learning" className={isMobileActive('/my-learning')}>ห้องเรียนของฉัน</Link>
                 </>
               )}
+              
+              {(role === 'tutor' || role === 'admin') && (
+                <Link to="/tutor" className={isMobileActive('/tutor')}>Tutor Dashboard</Link>
+              )}
+
               {role === 'admin' && (
                 <Link to="/admin" className="block px-4 py-3 mt-4 bg-linear-to-r from-brand to-purple-600 rounded-xl font-bold text-white shadow-md text-center">Admin Workspace</Link>
               )}
+              
               {role === 'guest' && (
                 <div className="pt-6 mt-4 border-t border-outline grid grid-cols-2 gap-4">
                   <Link to="/login" className="flex items-center justify-center px-4 py-3 text-sm font-bold bg-bg-main text-text-main rounded-xl">เข้าสู่ระบบ</Link>
@@ -206,9 +219,9 @@ export default function Layout() {
       <footer className="bg-bg-card border-t border-outline text-text-sub text-center py-8 mt-auto transition-colors">
         <div className="flex justify-center items-center gap-2 mb-2">
           <img src={logoImg} alt="Logo" className="w-5 h-5 opacity-50 grayscale" />
-          <span className="font-bold tracking-wider">Mall Platform</span>
+          <span className="font-bold tracking-wider">TeachTest Platform</span>
         </div>
-        <p className="text-sm font-medium">&copy; 2026 Mall Platform. All rights reserved.</p>
+        <p className="text-sm font-medium">&copy; 2026 TeachTest Platform. All rights reserved.</p>
       </footer>
     </div>
   );
