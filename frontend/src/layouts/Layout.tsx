@@ -2,19 +2,22 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import api from '../services/api';
 import NewsPopup from '../components/NewsPopup';
+import { useOAuthCallback } from '../hooks/useOAuthCallback';
 
 import logoImg from '../assets/logo.png';
-import settingImg from '../assets/settings.png'; 
+import settingImg from '../assets/settings.png';
 import logoutImg from '../assets/logout.png';
 import userImg from '../assets/user.png';
 import lightImg from '../assets/light.png';
 import darkImg from '../assets/dark.png';
 
 export default function Layout() {
+  // เรียกใช้ Hook เพื่อดักจับ Google OAuth Callback จาก URL
+  useOAuthCallback();
+
   const location = useLocation();
   const token = localStorage.getItem('token');
-  
-  // เปลี่ยนชื่อ State เป็น owner เพื่อให้ตรงกับข้อมูลจาก API
+
   const [owner, setOwner] = useState<any>(null);
 
   useEffect(() => {
@@ -39,6 +42,7 @@ export default function Layout() {
 
     window.addEventListener('storage', loadOwner);
     window.addEventListener('owner-updated', loadOwner);
+
     return () => {
       window.removeEventListener('storage', loadOwner);
       window.removeEventListener('owner-updated', loadOwner);
@@ -53,7 +57,6 @@ export default function Layout() {
   }, [location.pathname]);
 
   const role = token ? (owner?.role || 'user') : 'guest';
-
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -102,7 +105,6 @@ export default function Layout() {
                 <div className="p-2 bg-brand/10 rounded-xl mr-3 group-hover:scale-105 transition-transform">
                   <img src={logoImg} alt="Logo" className="w-8 h-8 object-contain" />
                 </div>
-                {/* แก้ไขคลาส bg-linear-to-r เป็น bg-gradient-to-r */}
                 <span className="text-2xl font-black tracking-tight bg-clip-text text-transparent bg-linear-to-r from-brand to-purple-600">Mall</span>
               </Link>
               
@@ -116,7 +118,6 @@ export default function Layout() {
                   </>
                 )}
                 {role === 'admin' && (
-                  /* แก้ไขคลาส bg-linear-to-r เป็น bg-gradient-to-r */
                   <Link to="/admin" className="bg-linear-to-r from-brand to-purple-600 px-5 py-2 rounded-xl text-white font-bold shadow-lg shadow-brand/30 hover:shadow-brand/50 transform hover:-translate-y-0.5 transition-all">
                     Admin Workspace
                   </Link>
@@ -171,7 +172,6 @@ export default function Layout() {
                   {mobileMenuOpen ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /> : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 6h16M4 12h16M4 18h16" />}
                 </svg>
               </button>
-
             </div>
           </div>
         </div>

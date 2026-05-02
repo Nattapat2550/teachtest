@@ -8,7 +8,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
   const [error, setError] = useState('');
-  const [isBanned, setIsBanned] = useState(false); 
+  const [isBanned, setIsBanned] = useState(false);
 
   const handleLogin = async (e: any) => {
     e.preventDefault();
@@ -17,24 +17,23 @@ export default function LoginPage() {
     try {
       const { data } = await api.post('/api/auth/login', { email, password, remember });
       
-      // แก้ไข: อ่านค่าจาก data.owner แทน data.user
       if (data.owner.status === 'banned') {
-        setIsBanned(true); 
-        return setError('บัญชีนี้ถูกระงับการใช้งาน');
+        setIsBanned(true);
+        return setError('บัญชีของคุณถูกระงับการใช้งาน');
       }
-      if (data.reactivated) alert('บัญชีของคุณถูกเปิดใช้งานอีกครั้ง');
+      if (data.reactivated) alert('บัญชีของคุณถูกกู้คืนและเปิดใช้งานแล้ว');
       
       localStorage.setItem('token', data.token);
-      // แก้ไข: เซฟเป็น 'owner'
       localStorage.setItem('owner', JSON.stringify(data.owner));
       window.location.href = '/home';
     } catch (err: any) {
-      setError(err.response?.data?.error || 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ');
+      setError(err.response?.data?.error || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง');
     }
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = 'https://teachtest.onrender.com/api/auth/google';
+    // แก้ไข: ใช้ api.defaults.baseURL เพื่อให้ทำงานได้ทั้ง Local และ Prod
+    window.location.href = `${api.defaults.baseURL}/api/auth/google`;
   };
 
   return (
@@ -47,7 +46,7 @@ export default function LoginPage() {
             <span className="text-center">{error}</span>
             {isBanned && (
               <Link to="/appeals" className="mt-2 text-blue-700 hover:text-blue-900 font-bold underline">
-                ยื่นเรื่องอุทธรณ์
+                ยื่นคำร้องขอปลดแบน
               </Link>
             )}
           </div>
@@ -78,7 +77,7 @@ export default function LoginPage() {
                 className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
               />
               <label htmlFor="remember" className="ml-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
-                จดจำฉันในระบบ
+                จดจำฉันไว้ในระบบ
               </label>
             </div>
             <Link to="/reset" className="text-sm text-blue-600 hover:underline dark:text-blue-400">
@@ -93,7 +92,7 @@ export default function LoginPage() {
         </div>
         <button onClick={handleGoogleLogin} className="w-full flex items-center justify-center bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition">
           <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="G" className="w-5 h-5 mr-2" />
-          เข้าสู่ระบบด้วย Google
+            ดำเนินการต่อด้วย Google
         </button>
       </div>
     </div>
