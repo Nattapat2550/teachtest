@@ -37,7 +37,7 @@ func (h *Handler) UsersMeGet(w http.ResponseWriter, r *http.Request) {
 	var role string
 	err := h.TeachDB.QueryRow("SELECT role FROM user_roles WHERE user_id = $1", uidStr).Scan(&role)
 	if err != nil {
-		role = "customer"
+		role = "student"
 	}
 
 	response := map[string]any{

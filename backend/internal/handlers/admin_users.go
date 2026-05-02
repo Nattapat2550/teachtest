@@ -70,12 +70,12 @@ func (h *Handler) AdminGetUsers(w http.ResponseWriter, r *http.Request) {
 				if pureRole == "admin" {
 					users[i]["role"] = "admin"
 				} else {
-					users[i]["role"] = "customer"
+					users[i]["role"] = "student"
 				}
 			}
 		} else {
 			users[i]["balance"] = 0.00
-			users[i]["role"] = "customer"
+			users[i]["role"] = "student"
 		}
 	}
 

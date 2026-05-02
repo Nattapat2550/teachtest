@@ -75,7 +75,8 @@ func NewRouter(cfg config.Config, mallDB *sql.DB) http.Handler {
 	r.Route("/api/users", setupUserRoutes(h))
 	r.Route("/api/admin", setupAdminRoutes(h))
 	r.Route("/api/center", setupCenterRoutes(h))
-
+	r.Route("/api", setupLMSRoutes(h))
+	
 	r.Get("/api/homepage", h.HomepageGet)
 	r.With(h.RequireAdmin).Put("/api/homepage", h.HomepageUpdate)
 	

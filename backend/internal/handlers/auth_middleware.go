@@ -149,3 +149,35 @@ func (h *Handler) clearAuthCookie(w http.ResponseWriter) {
 		Secure:   isProd,
 	})
 }
+// RequireRole เช็คว่าผู้ใช้มี Role ตรงกับที่อนุญาตหรือไม่
+func (h *Handler) RequireRole(roles ...string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			u := GetUser(r)
+			if u == nil {
+				h.writeError(w, http.StatusUnauthorized, "Unauthorized")
+				return
+			}
+			hasRole := false
+			for _, role := range roles {
+				if u.Role == role {
+					hasRole = true
+					break
+				}
+			}
+			if !hasRole {
+				h.writeError(w, http.StatusForbidden, "Forbidden")
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// GetUserIDStr เป็น Helper สำหรับดึงรหัส User ID แบบ String อย่างปลอดภัย
+func GetUserIDStr(u *AuthUser) string {
+	if u.UserID != "" {
+		return u.UserID
+	}
+	return fmt.Sprintf("%v", u.ID)
+}
