@@ -14,7 +14,7 @@ import (
 )
 
 func (h *Handler) UploadFile(w http.ResponseWriter, r *http.Request) {
-	// รองรับไฟล์ขนาดสูงสุด 50MB (ปรับได้)
+	// รองรับไฟล์ขนาดสูงสุด 50MB
 	r.ParseMultipartForm(50 << 20)
 	file, header, err := r.FormFile("file")
 	if err != nil {
@@ -23,68 +23,81 @@ func (h *Handler) UploadFile(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	// สร้างโฟลเดอร์ uploads ถ้ายังไม่มี
 	os.MkdirAll("uploads", os.ModePerm)
 
-	// สร้างชื่อไฟล์ใหม่ ป้องกันการซ้ำและปัญหา URL (เปลี่ยนเว้นวรรคเป็น _)
-	filename := fmt.Sprintf("%d_%s", time.Now().Unix(), filepath.Base(header.Filename))
-	filename = strings.ReplaceAll(filename, " ", "_")
-	filename = strings.ReplaceAll(filename, "%20", "_")
-
+	// ทำความสะอาดชื่อไฟล์ แปลงเว้นวรรคและ %20 เป็น _ เพื่อความปลอดภัยขั้นสุด
+	cleanName := header.Filename
+	cleanName = strings.ReplaceAll(cleanName, " ", "_")
+	cleanName = strings.ReplaceAll(cleanName, "%20", "_")
+	
+	filename := fmt.Sprintf("%d_%s", time.Now().Unix(), filepath.Base(cleanName))
 	savePath := filepath.Join("uploads", filename)
+	
 	out, err := os.Create(savePath)
 	if err != nil {
 		h.writeError(w, http.StatusInternalServerError, "Failed to save file on server")
 		return
 	}
 	defer out.Close()
-
 	io.Copy(out, file)
 
-	// คืนค่า URL Relative ให้ Frontend นำไปใช้งาน
 	fileUrl := "/uploads/" + filename
 	WriteJSON(w, http.StatusOK, map[string]string{"url": fileUrl})
 }
 
 func (h *Handler) ServeProtectedFile(w http.ResponseWriter, r *http.Request) {
 	fileName := chi.URLParam(r, "file")
-	
-	// Decode URL กรณีที่มีการแปลง %20 กลับเป็น Space ป้องกันการหาไฟล์ไม่เจอ
+
+	// 1. ถอดรหัส URL (เผื่อเบราว์เซอร์ส่ง %20 มาแทนเว้นวรรค)
 	if decodedName, err := url.PathUnescape(fileName); err == nil {
 		fileName = decodedName
 	}
 
-	filePath := filepath.Join("uploads", fileName)
+	// 2. ค้นหาไฟล์แบบยืดหยุ่น (แก้บัค 404 สำหรับไฟล์เก่าที่มีเว้นวรรค และไฟล์ใหม่ที่เป็น _)
+	pathsToTry := []string{
+		filepath.Join("uploads", fileName),
+		filepath.Join("uploads", strings.ReplaceAll(fileName, " ", "_")),
+		filepath.Join("uploads", strings.ReplaceAll(fileName, "_", " ")),
+	}
 
-	// ตรวจสอบว่ามีไฟล์อยู่จริงหรือไม่
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+	var validFilePath string
+	for _, p := range pathsToTry {
+		if _, err := os.Stat(p); err == nil {
+			validFilePath = p
+			break
+		}
+	}
+
+	// ถ้าพยายามหาทุกรูปแบบแล้วยังไม่เจอ
+	if validFilePath == "" {
 		h.writeError(w, http.StatusNotFound, "File not found")
 		return
 	}
 
-	ext := strings.ToLower(filepath.Ext(fileName))
-	// ให้รูปภาพเข้าถึงได้สาธารณะ
+	ext := strings.ToLower(filepath.Ext(validFilePath))
+	
+	// 3. ปล่อยผ่านไฟล์รูปภาพให้เข้าถึงได้ทันที
 	if ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".gif" || ext == ".webp" {
-		http.ServeFile(w, r, filePath)
+		http.ServeFile(w, r, validFilePath)
 		return
 	}
 
-	// สำหรับไฟล์เอกสารและวิดีโอ (mp4, pdf, zip) ต้องตรวจสอบ Token
+	// 4. ตรวจสอบ Token สำหรับวิดีโอและเอกสาร
 	token := extractTokenFromReq(r)
 	if token == "" {
 		h.writeError(w, http.StatusUnauthorized, "Unauthorized: No token provided")
 		return
 	}
 
-	_, err := h.parseToken(token)
-	if err != nil {
+	if _, err := h.parseToken(token); err != nil {
 		h.writeError(w, http.StatusUnauthorized, "Unauthorized: Invalid token")
 		return
 	}
 
-	// ไม่ให้ Browser แคชไฟล์เหล่านี้ เพื่อความปลอดภัย
+	// 5. เซ็ต Header ให้เบราว์เซอร์รู้ว่าไฟล์นี้สามารถ กรอวิดีโอ (Seek) ไปข้างหน้า-หลังได้
+	w.Header().Set("Accept-Ranges", "bytes")
 	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate")
 	w.Header().Set("Pragma", "no-cache")
 
-	http.ServeFile(w, r, filePath)
+	http.ServeFile(w, r, validFilePath)
 }

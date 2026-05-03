@@ -28,7 +28,6 @@ export default function LearningRoom() {
       await studentApi.updateProgress(enrollmentId!, itemId);
       setLearningData((prev: any) => {
         const newData = { ...prev };
-        // 🌟 แก้บัค: จัดการข้อมูลให้อยู่ใน nested object 'course' ให้ตรงกับที่ Backend ส่งมา
         const newCourse = { ...(newData.course || {}) };
         const newProgress = [...(newCourse.progress || [])];
         
@@ -46,7 +45,6 @@ export default function LearningRoom() {
   };
 
   const isCompleted = (itemId: string) => {
-    // 🌟 แก้บัค: เปลี่ยนมาดึงค่าจาก .course.progress (ของเดิมหาไม่เจอตอนรีเฟรช)
     return learningData?.course?.progress?.some((p: any) => p.item_id === itemId && p.is_completed);
   };
 
@@ -61,24 +59,22 @@ export default function LearningRoom() {
     }
   };
 
+  // 🌟 ฟังก์ชันประกอบ URL ที่แก้ให้ฉลาดขึ้น
   const getFullUrl = (url: string) => {
-  if (!url) return '';
-  const token = localStorage.getItem('token') || '';
-  let finalUrl = url;
-
-  // ถ้า url ไม่ได้เริ่มด้วย http (เป็น path จาก server) ให้เติม base url
-  if (!url.startsWith('http')) {
-    // ใช้ค่าจาก .env หรือ fallback ไปที่ production url
-    const baseUrl = import.meta.env.VITE_API_URL || 'https://teachtest.onrender.com';
-    finalUrl = `${baseUrl}${url}`;
-  }
-
-  // เติม token เข้าไปใน Query String เพื่อผ่าน Middleware ตรวจสอบสิทธิ์ของวิดีโอ
-  const separator = finalUrl.includes('?') ? '&' : '?';
-  return `${finalUrl}${separator}token=${token}`;
+    if (!url) return '';
+    const token = localStorage.getItem('token') || '';
+    let finalUrl = url;
+    
+    if (!url.startsWith('http')) {
+      const baseUrl = (api.defaults.baseURL || 'https://teachtest.onrender.com').replace(/\/$/, '');
+      const path = url.startsWith('/') ? url : `/${url}`;
+      finalUrl = `${baseUrl}${path}`;
+    }
+    
+    const separator = finalUrl.includes('?') ? '&' : '?';
+    return `${finalUrl}${separator}token=${token}`;
   };
 
-  // 🌟 คำนวณหลอด Progress ของนักเรียน
   const calculateProgress = () => {
     if (!learningData) return 0;
     let totalItems = 0;
@@ -102,7 +98,6 @@ export default function LearningRoom() {
         <div className="p-6 bg-linear-to-r from-blue-600 to-indigo-600 text-white">
           <h2 className="text-xl font-black leading-snug mb-3">{learningData.course.title}</h2>
           
-          {/* 🌟 หลอด Progress ใน Sidebar */}
           <div className="w-full bg-white/30 rounded-full h-2 overflow-hidden mb-1">
             <div className="bg-green-400 h-full rounded-full transition-all duration-500" style={{ width: `${percent}%` }}></div>
           </div>
@@ -158,15 +153,15 @@ export default function LearningRoom() {
             
             {activeItem.item_type === 'video' && (
               <div className="bg-black rounded-2xl overflow-hidden shadow-2xl ring-1 ring-gray-900/10 mb-8">
+                {/* 🌟 ลบ crossOrigin ออก เพื่อแก้ปัญหาเบราว์เซอร์บล็อกวิดีโอ */}
                 <video 
-                  controls 
-                  controlsList="nodownload" 
-                  onContextMenu={(e) => e.preventDefault()} 
-                  className="w-full aspect-video outline-none bg-black" 
-                  src={getFullUrl(activeItem.content_url)} 
+                  controls
+                  controlsList="nodownload"
+                  onContextMenu={(e) => e.preventDefault()}
+                  className="w-full aspect-video outline-none bg-black"
+                  src={getFullUrl(activeItem.content_url)}
                   onTimeUpdate={handleTimeUpdate}
-                  crossOrigin="use-credentials" 
-                  playsInline 
+                  playsInline
                 />
               </div>
             )}
@@ -176,14 +171,14 @@ export default function LearningRoom() {
                 <div className="w-24 h-24 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
                   <svg className="w-10 h-10 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">เอกสารประกอบการเรียน</h3>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">ไฟล์เอกสารประกอบการเรียน</h3>
                 <a 
                   href={getFullUrl(activeItem.content_url)} 
                   target="_blank" rel="noreferrer"
                   onClick={() => handleMarkProgress(activeItem.id)}
                   className="inline-flex items-center gap-2 bg-blue-600 text-white px-8 py-4 rounded-xl font-bold shadow-lg hover:bg-blue-700 hover:-translate-y-1 transition-all"
                 >
-                  ดาวน์โหลดเอกสาร
+                  เปิดอ่านเอกสาร / ดาวน์โหลด
                 </a>
               </div>
             )}
@@ -191,7 +186,7 @@ export default function LearningRoom() {
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-gray-400">
             <svg className="w-20 h-20 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            <p className="text-xl font-medium">เลือกบทเรียนจากเมนูด้านซ้ายเพื่อเริ่มต้น</p>
+            <p className="text-xl font-medium">เลือกเนื้อหาทางซ้ายมือเพื่อเริ่มต้นเรียนรู้</p>
           </div>
         )}
       </div>

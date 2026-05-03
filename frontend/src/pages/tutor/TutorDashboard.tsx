@@ -28,7 +28,7 @@ export default function TutorDashboard() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [uploading]);
 
-  // 🌟 เพิ่ม useEffect ตัวนี้เข้าไปเพื่อให้ดึงข้อมูลขึ้นมาทันทีที่เปิดหน้า
+  // 🌟 จุดที่เพิ่มเพื่อแก้บัค: ดึงข้อมูลคอร์สทันทีที่เปิดหน้านี้ขึ้นมา
   useEffect(() => {
     fetchCourses();
   }, []);
@@ -115,7 +115,6 @@ export default function TutorDashboard() {
           }
         });
         
-        // 🌟 เก็บแค่ Relative Path (/uploads/...) เพื่อให้รองรับได้ทั้ง localhost และ server จริง
         finalUrl = uploadRes.data.url;
       } else {
         finalData = JSON.stringify(examQuestions);
@@ -265,7 +264,6 @@ export default function TutorDashboard() {
                         </div>
                       )}
 
-                      {/* แสดง Progress Bar ตอนอัปโหลด */}
                       {uploading && itemForm.item_type !== 'exam' && (
                         <div className="mb-4">
                           <div className="flex justify-between text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">
