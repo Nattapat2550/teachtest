@@ -14,7 +14,6 @@ import (
 )
 
 func (h *Handler) UploadFile(w http.ResponseWriter, r *http.Request) {
-	// รองรับไฟล์ขนาดสูงสุด 50MB
 	r.ParseMultipartForm(50 << 20)
 	file, header, err := r.FormFile("file")
 	if err != nil {
@@ -25,7 +24,6 @@ func (h *Handler) UploadFile(w http.ResponseWriter, r *http.Request) {
 
 	os.MkdirAll("uploads", os.ModePerm)
 
-	// ทำความสะอาดชื่อไฟล์ แปลงเว้นวรรคและ %20 เป็น _ เพื่อความปลอดภัยขั้นสุด
 	cleanName := header.Filename
 	cleanName = strings.ReplaceAll(cleanName, " ", "_")
 	cleanName = strings.ReplaceAll(cleanName, "%20", "_")
@@ -48,12 +46,10 @@ func (h *Handler) UploadFile(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ServeProtectedFile(w http.ResponseWriter, r *http.Request) {
 	fileName := chi.URLParam(r, "file")
 
-	// 1. ถอดรหัส URL (เผื่อเบราว์เซอร์ส่ง %20 มาแทนเว้นวรรค)
 	if decodedName, err := url.PathUnescape(fileName); err == nil {
 		fileName = decodedName
 	}
 
-	// 2. ค้นหาไฟล์แบบยืดหยุ่น (แก้บัค 404 สำหรับไฟล์เก่าที่มีเว้นวรรค และไฟล์ใหม่ที่เป็น _)
 	pathsToTry := []string{
 		filepath.Join("uploads", fileName),
 		filepath.Join("uploads", strings.ReplaceAll(fileName, " ", "_")),
@@ -68,7 +64,6 @@ func (h *Handler) ServeProtectedFile(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// ถ้าพยายามหาทุกรูปแบบแล้วยังไม่เจอ
 	if validFilePath == "" {
 		h.writeError(w, http.StatusNotFound, "File not found")
 		return
@@ -76,25 +71,32 @@ func (h *Handler) ServeProtectedFile(w http.ResponseWriter, r *http.Request) {
 
 	ext := strings.ToLower(filepath.Ext(validFilePath))
 	
-	// 3. ปล่อยผ่านไฟล์รูปภาพให้เข้าถึงได้ทันที
 	if ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".gif" || ext == ".webp" {
 		http.ServeFile(w, r, validFilePath)
 		return
 	}
 
-	// 4. ตรวจสอบ Token สำหรับวิดีโอและเอกสาร
+	// 🔒 1. ตรวจสอบ Token (ป้องกันคนนอก)
 	token := extractTokenFromReq(r)
 	if token == "" {
 		h.writeError(w, http.StatusUnauthorized, "Unauthorized: No token provided")
 		return
 	}
-
 	if _, err := h.parseToken(token); err != nil {
 		h.writeError(w, http.StatusUnauthorized, "Unauthorized: Invalid token")
 		return
 	}
 
-	// 5. เซ็ต Header ให้เบราว์เซอร์รู้ว่าไฟล์นี้สามารถ กรอวิดีโอ (Seek) ไปข้างหน้า-หลังได้
+	// 🔒 2. ตรวจจับการดาวน์โหลดทางอ้อม (ป้องกัน IDM และการก๊อป URL ไปเปิดตรงๆ)
+	// เบราว์เซอร์ปกติที่โหลดผ่าน <video src="..."> จะส่ง Sec-Fetch-Dest: video
+	if ext == ".mp4" || ext == ".webm" {
+		dest := r.Header.Get("Sec-Fetch-Dest")
+		if dest != "video" && dest != "" {
+			h.writeError(w, http.StatusForbidden, "Direct downloading is not allowed")
+			return
+		}
+	}
+
 	w.Header().Set("Accept-Ranges", "bytes")
 	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate")
 	w.Header().Set("Pragma", "no-cache")

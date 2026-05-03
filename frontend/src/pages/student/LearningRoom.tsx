@@ -9,6 +9,31 @@ export default function LearningRoom() {
   const [activeItem, setActiveItem] = useState<any>(null);
   const [marking, setMarking] = useState(false);
 
+  // 🔒 ป้องกันการเปิด DevTools และการกด Save Page
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // บล็อก F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C (DevTools)
+      if (
+        e.key === 'F12' ||
+        (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) ||
+        (e.ctrlKey && (e.key === 'U' || e.key === 'S')) // บล็อก Ctrl+U (View Source) และ Ctrl+S (Save)
+      ) {
+        e.preventDefault();
+      }
+    };
+    
+    // บล็อกคลิกขวาทั้งหน้า (เสริมจากแท็ก Video)
+    const handleContextMenu = (e: MouseEvent) => e.preventDefault();
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('contextmenu', handleContextMenu);
+    
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('contextmenu', handleContextMenu);
+    };
+  }, []);
+
   useEffect(() => {
     studentApi.getMyLearning().then(res => {
       const current = res.data.find((e: any) => e.id === enrollmentId);
@@ -59,7 +84,6 @@ export default function LearningRoom() {
     }
   };
 
-  // 🌟 ฟังก์ชันประกอบ URL ที่แก้ให้ฉลาดขึ้น
   const getFullUrl = (url: string) => {
     if (!url) return '';
     const token = localStorage.getItem('token') || '';
@@ -93,7 +117,6 @@ export default function LearningRoom() {
   return (
     <div className="flex flex-col md:flex-row min-h-[calc(100vh-80px)] bg-gray-50 dark:bg-gray-900">
       
-      {/* Sidebar: Course Playlist */}
       <div className="w-full md:w-96 bg-white dark:bg-gray-800 border-r dark:border-gray-700 flex flex-col shadow-lg z-10">
         <div className="p-6 bg-linear-to-r from-blue-600 to-indigo-600 text-white">
           <h2 className="text-xl font-black leading-snug mb-3">{learningData.course.title}</h2>
@@ -145,18 +168,18 @@ export default function LearningRoom() {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="flex-1 p-6 lg:p-10 overflow-y-auto bg-gray-50 dark:bg-gray-900">
         {activeItem ? (
           <div className="max-w-5xl mx-auto">
             <h1 className="text-3xl font-black mb-8 text-gray-900 dark:text-white">{activeItem.title}</h1>
             
             {activeItem.item_type === 'video' && (
-              <div className="bg-black rounded-2xl overflow-hidden shadow-2xl ring-1 ring-gray-900/10 mb-8">
-                {/* 🌟 ลบ crossOrigin ออก เพื่อแก้ปัญหาเบราว์เซอร์บล็อกวิดีโอ */}
+              <div className="bg-black rounded-2xl overflow-hidden shadow-2xl ring-1 ring-gray-900/10 mb-8 relative">
+                {/* 🔒 ลบปุ่มดาวน์โหลด และปิดคลิกขวาที่ตัววิดีโอ */}
                 <video 
                   controls
                   controlsList="nodownload"
+                  disablePictureInPicture
                   onContextMenu={(e) => e.preventDefault()}
                   className="w-full aspect-video outline-none bg-black"
                   src={getFullUrl(activeItem.content_url)}
