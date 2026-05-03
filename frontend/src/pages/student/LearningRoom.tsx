@@ -9,7 +9,11 @@ export default function LearningRoom() {
   const [activeItem, setActiveItem] = useState<any>(null);
   const [marking, setMarking] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  
+  // Tracking Unique Watched Seconds for Video
+  const watchedSecondsRef = useRef<Set<number>>(new Set());
 
+  // Exam State
   const [examAnswers, setExamAnswers] = useState<{ [qIdx: number]: any }>({});
   const [examSubmitted, setExamSubmitted] = useState(false);
   const [examScore, setExamScore] = useState(0);
@@ -54,6 +58,20 @@ export default function LearningRoom() {
     setExamSubmitted(false);
     setExamScore(0);
     setMarking(false);
+    
+    // โหลดประวัติการดูวิดีโอจาก LocalStorage เพื่อให้เวลาสะสมยังอยู่ถ้ารีเฟรชหน้า
+    if (activeItem?.item_type === 'video') {
+      const savedWatched = localStorage.getItem(`video_watched_${enrollmentId}_${activeItem.id}`);
+      if (savedWatched) {
+        try {
+          watchedSecondsRef.current = new Set(JSON.parse(savedWatched));
+        } catch(e) {
+          watchedSecondsRef.current.clear();
+        }
+      } else {
+        watchedSecondsRef.current.clear();
+      }
+    }
   }, [activeItem]);
 
   const handleMarkProgress = async (itemId: string) => {
@@ -90,35 +108,30 @@ export default function LearningRoom() {
     }
   };
 
-  const handleSeeking = (e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
-    const video = e.target as HTMLVideoElement;
-    const maxKey = `video_max_${enrollmentId}_${activeItem.id}`;
-    let maxWatched = parseFloat(localStorage.getItem(maxKey) || '0');
-    
-    // ถ้าพยายาม Skip ข้ามไปจุดที่ยังไม่เคยดู ให้ดึงกลับมาที่ maxWatched + บัฟเฟอร์ 1 วิ
-    if (video.currentTime > maxWatched + 1) {
-      video.currentTime = maxWatched;
-    }
-  };
-
   const handleTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
     const video = e.target as HTMLVideoElement;
     if (!video.duration) return;
 
+    // บันทึกตำแหน่งวินาทีล่าสุด
     localStorage.setItem(`video_time_${enrollmentId}_${activeItem.id}`, video.currentTime.toString());
 
-    // อัปเดต Max Watched Time ตลอดเวลา (เฉพาะตอนที่ไม่ได้ Seeking)
-    const maxKey = `video_max_${enrollmentId}_${activeItem.id}`;
-    let maxWatched = parseFloat(localStorage.getItem(maxKey) || '0');
-    if (!video.seeking && video.currentTime > maxWatched) {
-      localStorage.setItem(maxKey, video.currentTime.toString());
+    // สะสมเวลาการดู (ข้ามได้แต่วินาทีที่ข้ามจะไม่ถูกนับ)
+    if (!video.seeking) {
+      const currentSec = Math.floor(video.currentTime);
+      if (!watchedSecondsRef.current.has(currentSec)) {
+        watchedSecondsRef.current.add(currentSec);
+        
+        // บันทึกวินาทีที่ดูสะสมลง LocalStorage ทุกๆ 5 วินาทีเพื่อลดการเขียนถี่เกินไป
+        if (currentSec % 5 === 0) {
+          localStorage.setItem(`video_watched_${enrollmentId}_${activeItem.id}`, JSON.stringify(Array.from(watchedSecondsRef.current)));
+        }
+      }
     }
 
-    const percentWatched = video.currentTime / video.duration;
-    // บันทึกความคืบหน้าทุกๆ 1 นาทีที่ดูจริง หรือเมื่อดูจบ 90%
-    const isMinuteMark = Math.floor(video.currentTime) % 60 === 0 && Math.floor(video.currentTime) > 0;
+    const watchedRatio = watchedSecondsRef.current.size / video.duration;
 
-    if ((percentWatched >= 0.90 || isMinuteMark) && !marking) {
+    // ถ้าดูคลิปสะสมเกิน 90% ถึงจะถือว่าผ่าน
+    if (watchedRatio >= 0.90 && !marking && !isCompleted(activeItem.id)) {
       setMarking(true);
       handleMarkProgress(activeItem.id).finally(() => {
         setTimeout(() => setMarking(false), 1500); 
@@ -226,7 +239,6 @@ export default function LearningRoom() {
                   src={getFullUrl(activeItem.content_url)}
                   onLoadedMetadata={handleLoadedMetadata}
                   onTimeUpdate={handleTimeUpdate}
-                  onSeeking={handleSeeking}
                   playsInline
                 />
               </div>
@@ -298,17 +310,25 @@ export default function LearningRoom() {
                           
                           {q.question_type === 'short_answer' ? (
                             <div className="mt-2">
-                              <textarea
-                                className="w-full p-4 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                                rows={3}
-                                placeholder="พิมพ์คำตอบของคุณที่นี่..."
-                                disabled={examSubmitted}
-                                value={examAnswers[qIdx] || ''}
-                                onChange={(e) => setExamAnswers({...examAnswers, [qIdx]: e.target.value})}
-                              />
-                              {examSubmitted && q.correct_answer && q.correct_answer.trim() !== '' && (
-                                <div className="mt-3 p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm font-bold shadow-sm">
-                                    คำตอบที่ถูกต้อง: {q.correct_answer}
+                              {q.correct_answer && q.correct_answer.trim() !== '' ? (
+                                <>
+                                  <textarea
+                                    className="w-full p-4 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                    rows={3}
+                                    placeholder="พิมพ์คำตอบของคุณที่นี่..."
+                                    disabled={examSubmitted}
+                                    value={examAnswers[qIdx] || ''}
+                                    onChange={(e) => setExamAnswers({...examAnswers, [qIdx]: e.target.value})}
+                                  />
+                                  {examSubmitted && (
+                                    <div className="mt-3 p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm font-bold shadow-sm">
+                                        คำตอบที่ถูกต้อง: {q.correct_answer}
+                                    </div>
+                                  )}
+                                </>
+                              ) : (
+                                <div className="text-gray-500 italic text-sm">
+                                  {/* ข้อนี้เป็นคำถามปลายเปิดหรือข้อความอ่าน ไม่มีช่องให้กรอกคำตอบ */}
                                 </div>
                               )}
                             </div>

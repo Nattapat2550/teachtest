@@ -236,14 +236,14 @@ export default function TutorDashboard() {
         <select 
           value={q.question_type || 'multiple_choice'} 
           onChange={(e) => updateQuestion(qIdx, 'question_type', e.target.value)}
-          className="p-2 border rounded-md dark:bg-gray-900 dark:text-white outline-none"
+          className="p-2 border rounded-md dark:bg-gray-900 dark:text-white outline-none font-bold"
         >
           <option value="multiple_choice">ปรนัย (ตัวเลือก)</option>
-          <option value="short_answer">อัตนัย (เติมคำ)</option>
+          <option value="short_answer">อัตนัย / คำถามปลายเปิด</option>
         </select>
       </div>
       <input type="text" placeholder={`โจทย์ข้อที่ ${qIdx + 1}`} value={q.question_text} onChange={(e) => updateQuestion(qIdx, 'question_text', e.target.value)} className="w-full p-2 mb-2 font-bold border-b outline-none dark:bg-gray-800 dark:text-white focus:border-blue-500" />
-      <input type="text" placeholder="URL รูปภาพประกอบ (ถ้ามี)" value={q.image_url || ''} onChange={(e) => updateQuestion(qIdx, 'image_url', e.target.value)} className="w-full p-2 mb-3 text-sm border-b outline-none dark:bg-gray-800 dark:text-gray-300 focus:border-blue-500" />
+      <input type="text" placeholder="URL รูปภาพประกอบโจทย์ (ถ้ามี)" value={q.image_url || ''} onChange={(e) => updateQuestion(qIdx, 'image_url', e.target.value)} className="w-full p-2 mb-3 text-sm border-b outline-none dark:bg-gray-800 dark:text-gray-300 focus:border-blue-500" />
       
       {q.question_type === 'multiple_choice' ? (
         <>
@@ -259,9 +259,10 @@ export default function TutorDashboard() {
         </>
       ) : (
         <div className="mt-2 pl-2">
+          <label className="text-xs font-bold text-gray-500 mb-1 block">คำตอบที่ถูกต้อง (หากพิมพ์ไว้ ระบบจะมีช่องให้ผู้เรียนกรอกและตรวจอัตโนมัติ / หากเว้นว่างไว้ จะไม่โชว์ช่องให้กรอก)</label>
           <input 
             type="text" 
-            placeholder="คำตอบที่ถูกต้อง (เว้นว่างไว้หากไม่ต้องการให้ระบบโชว์เฉลยและตรวจอัตโนมัติ)" 
+            placeholder="เช่น: 120, กรุงเทพมหานคร" 
             value={q.correct_answer || ''} 
             onChange={(e) => updateQuestion(qIdx, 'correct_answer', e.target.value)} 
             className="w-full p-2 text-sm border rounded-md dark:bg-gray-900 dark:text-white outline-none focus:border-blue-500" 
@@ -302,33 +303,45 @@ export default function TutorDashboard() {
             {selectedCourse && (
               <div className="space-y-6">
                 
-                <div className="p-4 border border-blue-200 bg-blue-50 dark:bg-blue-900/20 rounded-xl mb-6">
-                  <h4 className="text-sm font-bold text-blue-600 dark:text-blue-400 mb-3">สร้าง Promo Code สำหรับคอร์สนี้</h4>
-                  <form onSubmit={handleCreatePromo} className="flex flex-col sm:flex-row gap-3">
-                    <input type="text" placeholder="กรอกโค้ด (เช่น SUMMER50)" required className="flex-1 p-2 border rounded-lg dark:bg-gray-900 dark:text-white outline-none" value={promoForm.code} onChange={e=>setPromoForm({...promoForm, code: e.target.value})} />
-                    <input type="number" placeholder="ลด (บาท)" required min="0" className="w-24 p-2 border rounded-lg dark:bg-gray-900 dark:text-white outline-none" value={promoForm.discount_amount} onChange={e=>setPromoForm({...promoForm, discount_amount: Number(e.target.value)})} />
-                    <input type="number" placeholder="โควต้าคนใช้ (0=ไม่จำกัด)" required min="0" className="w-40 p-2 border rounded-lg dark:bg-gray-900 dark:text-white outline-none" value={promoForm.max_uses} onChange={e=>setPromoForm({...promoForm, max_uses: Number(e.target.value)})} />
-                    <button type="submit" className="bg-blue-600 text-white font-bold px-4 py-2 rounded-lg hover:bg-blue-700 transition">สร้าง</button>
+                {/* Promo Code Form */}
+                <div className="p-5 border border-blue-200 bg-blue-50 dark:bg-blue-900/20 rounded-xl mb-6">
+                  <h4 className="text-base font-bold text-blue-800 dark:text-blue-300 mb-4">โปรโมโค้ดส่วนลด (Promo Codes)</h4>
+                  <form onSubmit={handleCreatePromo} className="flex flex-col sm:flex-row gap-4 items-end">
+                    <div className="flex-1 w-full">
+                      <label className="block text-xs font-bold text-blue-700 dark:text-blue-400 mb-1">รหัสโค้ดส่วนลด</label>
+                      <input type="text" placeholder="เช่น SUMMER50" required className="w-full p-2.5 border rounded-lg dark:bg-gray-900 dark:text-white outline-none focus:border-blue-500" value={promoForm.code} onChange={e=>setPromoForm({...promoForm, code: e.target.value.toUpperCase()})} />
+                    </div>
+                    <div className="w-full sm:w-32 shrink-0">
+                      <label className="block text-xs font-bold text-blue-700 dark:text-blue-400 mb-1">ส่วนลด (บาท)</label>
+                      <input type="number" placeholder="0" required min="0" className="w-full p-2.5 border rounded-lg dark:bg-gray-900 dark:text-white outline-none focus:border-blue-500" value={promoForm.discount_amount} onChange={e=>setPromoForm({...promoForm, discount_amount: Number(e.target.value)})} />
+                    </div>
+                    <div className="w-full sm:w-32 shrink-0">
+                      <label className="block text-xs font-bold text-blue-700 dark:text-blue-400 mb-1">โควต้าสิทธิ์ (คน)</label>
+                      <input type="number" placeholder="0 = ไม่จำกัด" required min="0" className="w-full p-2.5 border rounded-lg dark:bg-gray-900 dark:text-white outline-none focus:border-blue-500" value={promoForm.max_uses} onChange={e=>setPromoForm({...promoForm, max_uses: Number(e.target.value)})} />
+                    </div>
+                    <button type="submit" className="bg-blue-600 text-white font-bold px-6 py-2.5 rounded-lg hover:bg-blue-700 transition w-full sm:w-auto h-11.5 whitespace-nowrap">สร้างโค้ด</button>
                   </form>
                   
-                  <div className="mt-4 border-t pt-4 border-blue-200 dark:border-blue-800">
-                    <h5 className="font-bold text-sm mb-2 text-blue-800 dark:text-blue-300">โค้ดส่วนลดที่สร้างแล้ว</h5>
-                    {promoCodes.length === 0 ? <p className="text-xs text-gray-500">ยังไม่มีโค้ดส่วนลด</p> : (
-                        <div className="space-y-2 max-h-40 overflow-y-auto">
+                  <div className="mt-5 border-t pt-4 border-blue-200 dark:border-blue-800">
+                    <h5 className="font-bold text-sm mb-3 text-blue-800 dark:text-blue-300">โค้ดส่วนลดที่สร้างแล้ว</h5>
+                    {promoCodes.length === 0 ? <p className="text-sm text-gray-500">ยังไม่มีโค้ดส่วนลดสำหรับคอร์สนี้</p> : (
+                        <div className="space-y-3 max-h-60 overflow-y-auto">
                             {promoCodes.map(pc => (
-                                <div key={pc.id} className="bg-white dark:bg-gray-800 p-3 rounded-lg border dark:border-gray-700 text-sm flex justify-between items-center">
+                                <div key={pc.id} className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col sm:flex-row justify-between sm:items-center gap-2">
                                     <div>
-                                        <span className="font-bold text-blue-600">{pc.code}</span>
-                                        <span className="ml-2 text-gray-600 dark:text-gray-300">ลด ฿{pc.discount_amount}</span>
-                                        <div className="text-xs text-gray-500 mt-1">
-                                            ใช้แล้ว {pc.uses?.length || 0} / {pc.max_uses > 0 ? pc.max_uses : 'ไม่จำกัด'} สิทธิ์
+                                        <div className="flex items-center gap-3 mb-1">
+                                            <span className="font-black text-blue-600 text-lg">{pc.code}</span>
+                                            <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded">ลด ฿{pc.discount_amount}</span>
+                                        </div>
+                                        <div className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                                            ถูกใช้ไปแล้ว <span className={pc.max_uses > 0 && pc.uses?.length >= pc.max_uses ? "text-red-500" : "text-blue-600"}>{pc.uses?.length || 0}</span> / {pc.max_uses > 0 ? `${pc.max_uses} สิทธิ์` : 'ไม่จำกัดสิทธิ์'}
                                         </div>
                                     </div>
                                     {pc.uses && pc.uses.length > 0 && (
-                                        <div className="text-xs text-right">
-                                            <span className="text-gray-400 block mb-1">คนใช้ล่าสุด:</span>
-                                            {pc.uses.slice(0, 2).map((u:any, idx:number) => (
-                                                <div key={idx} className="text-gray-600 dark:text-gray-300 truncate max-w-32">{u.student_id}</div>
+                                        <div className="text-xs sm:text-right bg-gray-50 dark:bg-gray-900 p-2 rounded-lg border dark:border-gray-700">
+                                            <span className="text-gray-400 font-bold block mb-1">รายชื่อผู้ใช้ล่าสุด:</span>
+                                            {pc.uses.slice(0, 3).map((u:any, idx:number) => (
+                                                <div key={idx} className="text-gray-600 dark:text-gray-300 truncate w-32">{u.student_id}</div>
                                             ))}
                                         </div>
                                     )}
@@ -442,7 +455,7 @@ export default function TutorDashboard() {
                               type="file" 
                               accept={itemForm.item_type === 'video' ? "video/*" : ".pdf,.doc,.docx,.zip,.rar"}
                               onChange={(e) => setSelectedFile(e.target.files ? e.target.files[0] : null)}
-                              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                             />
                           </div>
                         )}
