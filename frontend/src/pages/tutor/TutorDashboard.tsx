@@ -103,9 +103,8 @@ export default function TutorDashboard() {
         const fd = new FormData();
         fd.append('file', selectedFile);
         
-        const uploadRes = await api.post('/api/tutor/upload', fd, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
+        // แก้ไข: ให้ Axios กำหนด Headers ให้โดยอัตโนมัติ เพื่อรักษา boundary
+        const uploadRes = await api.post('/api/tutor/upload', fd);
         finalUrl = uploadRes.data.url;
       } 
       // 2. ถ้าเป็น Exam ให้แพ็คข้อมูล Array เป็น JSON String เพื่อเซฟลงฐานข้อมูล
