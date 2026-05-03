@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api, { studentApi } from '../../services/api';
 
@@ -8,9 +8,10 @@ export default function LearningRoom() {
   const [learningData, setLearningData] = useState<any>(null);
   const [activeItem, setActiveItem] = useState<any>(null);
   const [marking, setMarking] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   // Exam State
-  const [examAnswers, setExamAnswers] = useState<{ [qIdx: number]: number }>({});
+  const [examAnswers, setExamAnswers] = useState<{ [qIdx: number]: any }>({});
   const [examSubmitted, setExamSubmitted] = useState(false);
   const [examScore, setExamScore] = useState(0);
 
@@ -24,7 +25,6 @@ export default function LearningRoom() {
         e.preventDefault();
       }
     };
-    
     const handleContextMenu = (e: MouseEvent) => e.preventDefault();
 
     document.addEventListener('keydown', handleKeyDown);
@@ -50,7 +50,6 @@ export default function LearningRoom() {
     });
   }, [enrollmentId, navigate]);
 
-  // รีเซ็ตสถานะเวลาเปลี่ยนเนื้อหา
   useEffect(() => {
     setExamAnswers({});
     setExamSubmitted(false);
@@ -83,14 +82,49 @@ export default function LearningRoom() {
     return learningData?.course?.progress?.some((p: any) => p.item_id === itemId && p.is_completed);
   };
 
+  // ----- Video Handlers -----
+  const handleLoadedMetadata = (e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
+    const video = e.target as HTMLVideoElement;
+    const savedTime = localStorage.getItem(`video_time_${enrollmentId}_${activeItem.id}`);
+    if (savedTime) {
+      video.currentTime = parseFloat(savedTime);
+    }
+  };
+
+  const handleSeeking = (e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
+    const video = e.target as HTMLVideoElement;
+    const maxKey = `video_max_${enrollmentId}_${activeItem.id}`;
+    let maxWatched = parseFloat(localStorage.getItem(maxKey) || '0');
+    
+    // ถ้าพยายาม Skip ข้ามไปจุดที่ยังไม่เคยดู ให้ดึงกลับมาที่ maxWatched (ยอมให้มีบัฟเฟอร์ 2 วิ)
+    if (video.currentTime > maxWatched + 2) {
+      video.currentTime = maxWatched;
+    }
+  };
+
   const handleTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
     const video = e.target as HTMLVideoElement;
     if (!video.duration) return;
+
+    // บันทึก Timestamp ปัจจุบัน
+    localStorage.setItem(`video_time_${enrollmentId}_${activeItem.id}`, video.currentTime.toString());
+
+    // อัปเดต Max Watched Time
+    const maxKey = `video_max_${enrollmentId}_${activeItem.id}`;
+    let maxWatched = parseFloat(localStorage.getItem(maxKey) || '0');
+    if (video.currentTime > maxWatched) {
+      localStorage.setItem(maxKey, video.currentTime.toString());
+    }
+
     const percentWatched = video.currentTime / video.duration;
-    
-    if (percentWatched >= 0.90 && !isCompleted(activeItem.id) && !marking) {
+    // บันทึกความคืบหน้าทุก 1 นาที หรือเมื่อดูจบ 90%
+    const isMinuteMark = Math.floor(video.currentTime) % 60 === 0 && Math.floor(video.currentTime) > 0;
+
+    if ((percentWatched >= 0.90 || isMinuteMark) && !marking) {
       setMarking(true);
-      handleMarkProgress(activeItem.id).finally(() => setMarking(false));
+      handleMarkProgress(activeItem.id).finally(() => {
+        setTimeout(() => setMarking(false), 1500); // หน่วงเวลาป้องกันยิงซ้ำ
+      });
     }
   };
 
@@ -186,13 +220,16 @@ export default function LearningRoom() {
             {activeItem.item_type === 'video' && (
               <div className="bg-black rounded-2xl overflow-hidden shadow-2xl ring-1 ring-gray-900/10 mb-8 relative">
                 <video 
+                  ref={videoRef}
                   controls
                   controlsList="nodownload"
                   disablePictureInPicture
                   onContextMenu={(e) => e.preventDefault()}
                   className="w-full aspect-video outline-none bg-black"
                   src={getFullUrl(activeItem.content_url)}
+                  onLoadedMetadata={handleLoadedMetadata}
                   onTimeUpdate={handleTimeUpdate}
+                  onSeeking={handleSeeking}
                   playsInline
                 />
               </div>
@@ -227,14 +264,18 @@ export default function LearningRoom() {
                   const handleSubmitExam = () => {
                     let score = 0;
                     questions.forEach((q, qIdx) => {
-                      const selectedChoiceIdx = examAnswers[qIdx];
-                      if (selectedChoiceIdx !== undefined && q.choices[selectedChoiceIdx]?.is_correct) {
-                        score++;
+                      if (q.question_type === 'short_answer') {
+                        // อัตนัยจะถือว่าผ่านโดยอัตโนมัติ ไม่ได้เอามาบวกคะแนนในส่วนของชอยส์
+                      } else {
+                        const selectedChoiceIdx = examAnswers[qIdx];
+                        if (selectedChoiceIdx !== undefined && q.choices[selectedChoiceIdx]?.is_correct) {
+                          score++;
+                        }
                       }
                     });
                     setExamScore(score);
                     setExamSubmitted(true);
-                    handleMarkProgress(activeItem.id); // บันทึกว่าทำแบบทดสอบเสร็จแล้ว
+                    handleMarkProgress(activeItem.id); 
                   };
 
                   return (
@@ -242,27 +283,42 @@ export default function LearningRoom() {
                       {questions.map((q: any, qIdx: number) => (
                         <div key={qIdx} className="p-6 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700">
                           <p className="font-bold text-lg mb-4 text-gray-900 dark:text-white">{qIdx + 1}. {q.question_text}</p>
-                          <div className="space-y-3 pl-2">
-                            {q.choices.map((c: any, cIdx: number) => (
-                              <label key={cIdx} className="flex items-center gap-3 cursor-pointer">
-                                <input type="radio"
-                                  name={`q_${qIdx}`}
-                                  checked={examAnswers[qIdx] === cIdx}
-                                  disabled={examSubmitted}
-                                  onChange={() => setExamAnswers({ ...examAnswers, [qIdx]: cIdx })}
-                                  className="w-5 h-5 text-blue-600 focus:ring-blue-500"
-                                />
-                                <span className={`${
-                                  examSubmitted && c.is_correct ? 'text-green-600 font-bold' : 'text-gray-700 dark:text-gray-300'
-                                } ${
-                                  examSubmitted && examAnswers[qIdx] === cIdx && !c.is_correct ? 'text-red-600 line-through' : ''
-                                }`}>
-                                  {c.choice_text}
-                                  {examSubmitted && c.is_correct && ' (ถูกต้อง)'}
-                                </span>
-                              </label>
-                            ))}
-                          </div>
+                          {q.image_url && (
+                            <img src={q.image_url} alt="Question" className="max-w-full md:max-w-md rounded-lg shadow-sm mb-4" />
+                          )}
+                          
+                          {q.question_type === 'short_answer' ? (
+                            <textarea
+                              className="w-full p-4 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                              rows={4}
+                              placeholder="พิมพ์คำตอบของคุณที่นี่..."
+                              disabled={examSubmitted}
+                              value={examAnswers[qIdx] || ''}
+                              onChange={(e) => setExamAnswers({...examAnswers, [qIdx]: e.target.value})}
+                            />
+                          ) : (
+                            <div className="space-y-3 pl-2">
+                              {q.choices.map((c: any, cIdx: number) => (
+                                <label key={cIdx} className="flex items-center gap-3 cursor-pointer">
+                                  <input type="radio"
+                                    name={`q_${qIdx}`}
+                                    checked={examAnswers[qIdx] === cIdx}
+                                    disabled={examSubmitted}
+                                    onChange={() => setExamAnswers({ ...examAnswers, [qIdx]: cIdx })}
+                                    className="w-5 h-5 text-blue-600 focus:ring-blue-500"
+                                  />
+                                  <span className={`${
+                                    examSubmitted && c.is_correct ? 'text-green-600 font-bold' : 'text-gray-700 dark:text-gray-300'
+                                  } ${
+                                    examSubmitted && examAnswers[qIdx] === cIdx && !c.is_correct ? 'text-red-600 line-through' : ''
+                                  }`}>
+                                    {c.choice_text}
+                                    {examSubmitted && c.is_correct && ' (ถูกต้อง)'}
+                                  </span>
+                                </label>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       ))}
                       {!examSubmitted ? (
@@ -271,8 +327,11 @@ export default function LearningRoom() {
                         </button>
                       ) : (
                         <div className="p-6 bg-green-50 border border-green-200 dark:bg-green-900/20 dark:border-green-800 text-green-800 dark:text-green-400 rounded-xl text-center shadow-sm">
-                          <p className="text-3xl font-black mb-2">ได้คะแนน {examScore} / {questions.length}</p>
-                          <p className="font-medium">ระบบได้บันทึกความคืบหน้าของคุณแล้ว</p>
+                          <p className="text-3xl font-black mb-2">ส่งคำตอบเรียบร้อยแล้ว!</p>
+                          <p className="font-medium">
+                            ได้คะแนนปรนัย: {examScore} ข้อ <br />
+                            ระบบได้บันทึกความคืบหน้าของคุณแล้ว
+                          </p>
                         </div>
                       )}
                     </div>

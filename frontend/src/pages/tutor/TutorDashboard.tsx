@@ -6,32 +6,23 @@ export default function TutorDashboard() {
   const [selectedCourse, setSelectedCourse] = useState<any>(null);
   const [courseForm, setCourseForm] = useState({ title: '', price: 0, description: '', cover_image: '' });
   
-  // Playlist State
+  // Playlist & Item State
   const [editingPlaylistId, setEditingPlaylistId] = useState<string | null>(null);
   const [playlistForm, setPlaylistForm] = useState({ title: '', sort_order: 1 });
-  
-  // Item State
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [itemForm, setItemForm] = useState({ title: '', item_type: 'video', sort_order: 1, content_url: '' });
   
+  // Promo Code State
+  const [promoForm, setPromoForm] = useState({ code: '', discount_amount: 0 });
+
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0); 
   
+  // Exam State (เพิ่ม image_url และ question_type)
   const [examQuestions, setExamQuestions] = useState([
-    { question_text: '', choices: [{ choice_text: '', is_correct: true }] }
+    { question_text: '', image_url: '', question_type: 'multiple_choice', choices: [{ choice_text: '', is_correct: true }] }
   ]);
-
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (uploading) {
-        e.preventDefault();
-        e.returnValue = 'กำลังอัปโหลดไฟล์ คุณแน่ใจหรือไม่ว่าต้องการออก?';
-      }
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [uploading]);
 
   useEffect(() => {
     fetchCourses();
@@ -58,6 +49,19 @@ export default function TutorDashboard() {
     } catch (e) { alert('เกิดข้อผิดพลาด'); }
   };
 
+  // ----- Promo Code Handlers -----
+  const handleCreatePromo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedCourse) return;
+    try {
+      await tutorApi.createPromoCode(selectedCourse.id, promoForm);
+      alert('สร้าง Promo Code สำเร็จ!');
+      setPromoForm({ code: '', discount_amount: 0 });
+    } catch (err) {
+      alert('เกิดข้อผิดพลาดในการสร้าง หรือโค้ดอาจซ้ำ');
+    }
+  };
+
   // ----- Playlist Handlers -----
   const handleSavePlaylist = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,7 +81,6 @@ export default function TutorDashboard() {
   const handleEditPlaylist = (pl: any) => {
     setEditingPlaylistId(pl.id);
     setPlaylistForm({ title: pl.title, sort_order: pl.sort_order || 1 });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDeletePlaylist = async (plId: string) => {
@@ -94,11 +97,11 @@ export default function TutorDashboard() {
 
   // ----- Exam Helpers -----
   const addQuestion = () => {
-    setExamQuestions([...examQuestions, { question_text: '', choices: [{ choice_text: '', is_correct: true }] }]);
+    setExamQuestions([...examQuestions, { question_text: '', image_url: '', question_type: 'multiple_choice', choices: [{ choice_text: '', is_correct: true }] }]);
   };
-  const updateQuestion = (index: number, text: string) => {
+  const updateQuestion = (index: number, key: string, value: string) => {
     const newQs = [...examQuestions];
-    newQs[index].question_text = text;
+    (newQs[index] as any)[key] = value;
     setExamQuestions(newQs);
   };
   const addChoice = (qIndex: number) => {
@@ -130,7 +133,7 @@ export default function TutorDashboard() {
       try {
         setExamQuestions(JSON.parse(item.content_data));
       } catch {
-        setExamQuestions([{ question_text: '', choices: [{ choice_text: '', is_correct: true }] }]);
+        setExamQuestions([{ question_text: '', image_url: '', question_type: 'multiple_choice', choices: [{ choice_text: '', is_correct: true }] }]);
       }
     }
     setSelectedFile(null);
@@ -164,7 +167,6 @@ export default function TutorDashboard() {
               }
             }
           });
-          
           finalUrl = uploadRes.data.url;
         } else if (!editingItemId) {
           alert('กรุณาเลือกไฟล์');
@@ -211,6 +213,40 @@ export default function TutorDashboard() {
     } catch (e) { alert('เกิดข้อผิดพลาด'); }
   };
 
+  // ส่วน UI Form Exam สำหรับนำไปใช้ซ้ำ
+  const renderExamEditor = (qIdx: number, q: any, playlistId?: string) => (
+    <div key={qIdx} className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700">
+      <div className="flex gap-2 mb-2">
+        <select 
+          value={q.question_type || 'multiple_choice'} 
+          onChange={(e) => updateQuestion(qIdx, 'question_type', e.target.value)}
+          className="p-2 border rounded-md dark:bg-gray-900 dark:text-white outline-none"
+        >
+          <option value="multiple_choice">ปรนัย (ตัวเลือก)</option>
+          <option value="short_answer">อัตนัย (เติมคำ/ไม่ตรวจคำตอบ)</option>
+        </select>
+      </div>
+      <input type="text" placeholder={`โจทย์ข้อที่ ${qIdx + 1}`} value={q.question_text} onChange={(e) => updateQuestion(qIdx, 'question_text', e.target.value)} className="w-full p-2 mb-2 font-bold border-b outline-none dark:bg-gray-800 dark:text-white focus:border-blue-500" />
+      <input type="text" placeholder="URL รูปภาพประกอบ (ถ้ามี)" value={q.image_url || ''} onChange={(e) => updateQuestion(qIdx, 'image_url', e.target.value)} className="w-full p-2 mb-3 text-sm border-b outline-none dark:bg-gray-800 dark:text-gray-300 focus:border-blue-500" />
+      
+      {q.question_type === 'multiple_choice' ? (
+        <>
+          <div className="space-y-2 pl-4">
+            {q.choices.map((c: any, cIdx: number) => (
+              <div key={cIdx} className="flex items-center gap-3">
+                <input type="radio" name={`correct_${playlistId || 'edit'}_${qIdx}`} checked={c.is_correct} onChange={() => setCorrectChoice(qIdx, cIdx)} className="w-4 h-4 text-blue-600" />
+                <input type="text" placeholder={`ตัวเลือกที่ ${cIdx + 1}`} value={c.choice_text} onChange={(e) => updateChoice(qIdx, cIdx, e.target.value)} className={`flex-1 p-2 text-sm border rounded-md dark:bg-gray-900 dark:text-white outline-none ${c.is_correct ? 'border-green-400 bg-green-50' : 'border-gray-200'}`} />
+              </div>
+            ))}
+          </div>
+          <button type="button" onClick={() => addChoice(qIdx)} className="mt-3 text-xs font-bold text-blue-600 hover:underline">+ เพิ่มตัวเลือก</button>
+        </>
+      ) : (
+        <p className="text-sm text-gray-500 mt-2 italic">นักเรียนจะเห็นช่องกรอกคำตอบ (ระบบจะไม่ตรวจอัตโนมัติ)</p>
+      )}
+    </div>
+  );
+
   return (
     <div className="max-w-6xl mx-auto p-6 mt-8">
       <h1 className="text-3xl font-black mb-8 dark:text-white">Tutor Dashboard</h1>
@@ -244,6 +280,16 @@ export default function TutorDashboard() {
             {selectedCourse && (
               <div className="space-y-6">
                 
+                {/* Promo Code Form */}
+                <div className="p-4 border border-blue-200 bg-blue-50 dark:bg-blue-900/20 rounded-xl mb-6">
+                  <h4 className="text-sm font-bold text-blue-600 dark:text-blue-400 mb-3">สร้าง Promo Code สำหรับคอร์สนี้</h4>
+                  <form onSubmit={handleCreatePromo} className="flex flex-col sm:flex-row gap-3">
+                    <input type="text" placeholder="กรอกโค้ด (เช่น SUMMER50)" required className="flex-1 p-2 border rounded-lg dark:bg-gray-900 dark:text-white outline-none" value={promoForm.code} onChange={e=>setPromoForm({...promoForm, code: e.target.value})} />
+                    <input type="number" placeholder="ส่วนลด (บาท)" required min="0" className="w-32 p-2 border rounded-lg dark:bg-gray-900 dark:text-white outline-none" value={promoForm.discount_amount} onChange={e=>setPromoForm({...promoForm, discount_amount: Number(e.target.value)})} />
+                    <button type="submit" className="bg-blue-600 text-white font-bold px-4 py-2 rounded-lg hover:bg-blue-700 transition">สร้าง</button>
+                  </form>
+                </div>
+
                 {/* Form สำหรับ Playlist */}
                 <div className="p-4 border-2 border-dashed border-purple-200 dark:border-purple-900/50 rounded-xl">
                   <h4 className="text-sm font-bold text-purple-600 dark:text-purple-400 mb-3">
@@ -251,7 +297,7 @@ export default function TutorDashboard() {
                   </h4>
                   <form onSubmit={handleSavePlaylist} className="flex flex-col sm:flex-row gap-4">
                     <div className="flex-1 flex gap-3">
-                      <input type="number" placeholder="ลำดับ" title="ลำดับ" required className="w-20 p-3 border rounded-xl dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-500" value={playlistForm.sort_order} onChange={e=>setPlaylistForm({...playlistForm, sort_order: Number(e.target.value)})} />
+                      <input type="number" placeholder="ลำดับ" required className="w-20 p-3 border rounded-xl dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-500" value={playlistForm.sort_order} onChange={e=>setPlaylistForm({...playlistForm, sort_order: Number(e.target.value)})} />
                       <input type="text" placeholder="ชื่อบทเรียน (เช่น บทที่ 1)" required className="flex-1 p-3 border rounded-xl dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-500" value={playlistForm.title} onChange={e=>setPlaylistForm({...playlistForm, title: e.target.value})} />
                     </div>
                     <div className="flex gap-2">
@@ -285,7 +331,6 @@ export default function TutorDashboard() {
                         {pl.items.map((it: any) => (
                           <div key={it.id}>
                             {editingItemId === it.id ? (
-                              // Form Edit Item Inline
                               <div className="p-4 bg-white dark:bg-gray-800 border-2 border-blue-400 rounded-xl shadow-md my-4">
                                 <h4 className="text-sm font-bold text-blue-600 mb-3">แก้ไขเนื้อหา</h4>
                                 <div className="flex gap-3 mb-4">
@@ -305,20 +350,7 @@ export default function TutorDashboard() {
                                 )}
                                 {itemForm.item_type === 'exam' && (
                                   <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/10 rounded-xl space-y-4">
-                                    {examQuestions.map((q, qIdx) => (
-                                      <div key={qIdx} className="p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-                                        <input type="text" placeholder={`โจทย์ข้อที่ ${qIdx + 1}`} value={q.question_text} onChange={(e) => updateQuestion(qIdx, e.target.value)} className="w-full p-2 mb-2 border-b outline-none dark:bg-gray-800 dark:text-white" />
-                                        <div className="space-y-2 pl-4">
-                                          {q.choices.map((c, cIdx) => (
-                                            <div key={cIdx} className="flex items-center gap-3">
-                                              <input type="radio" name={`correct_edit_${qIdx}`} checked={c.is_correct} onChange={() => setCorrectChoice(qIdx, cIdx)} className="w-4 h-4 text-blue-600" />
-                                              <input type="text" placeholder={`ตัวเลือกที่ ${cIdx + 1}`} value={c.choice_text} onChange={(e) => updateChoice(qIdx, cIdx, e.target.value)} className="flex-1 p-1 text-sm border rounded outline-none dark:bg-gray-900 dark:text-white" />
-                                            </div>
-                                          ))}
-                                        </div>
-                                        <button type="button" onClick={() => addChoice(qIdx)} className="text-xs text-blue-600 mt-2">+ เพิ่มตัวเลือก</button>
-                                      </div>
-                                    ))}
+                                    {examQuestions.map((q, qIdx) => renderExamEditor(qIdx, q))}
                                     <button type="button" onClick={addQuestion} className="w-full py-1.5 border-2 border-dashed border-gray-300 text-gray-500 rounded hover:bg-gray-100">+ เพิ่มข้อสอบ</button>
                                   </div>
                                 )}
@@ -328,8 +360,7 @@ export default function TutorDashboard() {
                                 </div>
                               </div>
                             ) : (
-                              // Row Item Normal
-                              <div className="flex justify-between items-center text-sm bg-white dark:bg-gray-800 p-3 rounded-lg border dark:border-gray-700 shadow-sm transition-hover hover:border-blue-300">
+                              <div className="flex justify-between items-center text-sm bg-white dark:bg-gray-800 p-3 rounded-lg border dark:border-gray-700 shadow-sm hover:border-blue-300">
                                 <span className="font-medium dark:text-gray-200">
                                   <span className="text-gray-400 mr-2 border border-gray-200 px-1.5 rounded">{it.sort_order}</span>
                                   <span className="text-blue-500 uppercase mr-2 tracking-wider">[{it.item_type}]</span>
@@ -346,7 +377,6 @@ export default function TutorDashboard() {
                       </div>
                     )}
 
-                    {/* Form เพิ่ม Item ใหม่ (ซ่อนไว้ถ้ากำลังแก้ไข Item อื่นอยู่) */}
                     {!editingItemId && (
                       <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
                         <h4 className="text-sm font-bold text-gray-500 mb-3">+ เพิ่มเนื้อหาใหม่ใน "{pl.title}"</h4>
@@ -366,27 +396,14 @@ export default function TutorDashboard() {
                               type="file" 
                               accept={itemForm.item_type === 'video' ? "video/*" : ".pdf,.doc,.docx,.zip,.rar"}
                               onChange={(e) => setSelectedFile(e.target.files ? e.target.files[0] : null)}
-                              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-blue-50 file:text-blue-700"
                             />
                           </div>
                         )}
 
                         {itemForm.item_type === 'exam' && (
                           <div className="mb-4 p-4 border border-blue-200 bg-blue-50/50 dark:bg-blue-900/10 rounded-xl space-y-4">
-                            {examQuestions.map((q, qIdx) => (
-                              <div key={qIdx} className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700">
-                                <input type="text" placeholder={`โจทย์ข้อที่ ${qIdx + 1}`} value={q.question_text} onChange={(e) => updateQuestion(qIdx, e.target.value)} className="w-full p-2 mb-3 font-bold border-b outline-none dark:bg-gray-800 dark:text-white focus:border-blue-500" />
-                                <div className="space-y-2 pl-4">
-                                  {q.choices.map((c, cIdx) => (
-                                    <div key={cIdx} className="flex items-center gap-3">
-                                      <input type="radio" name={`correct_new_${pl.id}_${qIdx}`} checked={c.is_correct} onChange={() => setCorrectChoice(qIdx, cIdx)} className="w-4 h-4 text-blue-600" />
-                                      <input type="text" placeholder={`ตัวเลือกที่ ${cIdx + 1}`} value={c.choice_text} onChange={(e) => updateChoice(qIdx, cIdx, e.target.value)} className={`flex-1 p-2 text-sm border rounded-md dark:bg-gray-900 dark:text-white outline-none ${c.is_correct ? 'border-green-400 bg-green-50' : 'border-gray-200'}`} />
-                                    </div>
-                                  ))}
-                                </div>
-                                <button type="button" onClick={() => addChoice(qIdx)} className="mt-3 text-xs font-bold text-blue-600 hover:underline">+ เพิ่มตัวเลือก</button>
-                              </div>
-                            ))}
+                            {examQuestions.map((q, qIdx) => renderExamEditor(qIdx, q, pl.id))}
                             <button type="button" onClick={addQuestion} className="w-full py-2 border-2 border-dashed border-gray-300 text-gray-500 font-bold rounded-lg hover:bg-gray-100 transition">+ เพิ่มข้อสอบ</button>
                           </div>
                         )}
@@ -411,7 +428,6 @@ export default function TutorDashboard() {
                         </button>
                       </div>
                     )}
-
                   </div>
                 ))}
               </div>
