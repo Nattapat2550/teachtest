@@ -2,7 +2,9 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -45,10 +47,11 @@ func (h *Handler) TutorGetMyCourses(w http.ResponseWriter, r *http.Request) {
 	var courses []map[string]any
 	for rows.Next() {
 		var c map[string]any = make(map[string]any)
-		var id, title, createdAt string
+		var id, title string
 		var desc, cover *string
 		var price float64
 		var isPub bool
+		var createdAt time.Time // 🌟 แก้ไข: เปลี่ยนชนิดตัวแปรเป็น time.Time เพื่อไม่ให้เกิด Scan Error
 		var plJSON []byte
 
 		if err := rows.Scan(&id, &title, &desc, &price, &cover, &isPub, &createdAt, &plJSON); err == nil {
@@ -58,13 +61,15 @@ func (h *Handler) TutorGetMyCourses(w http.ResponseWriter, r *http.Request) {
 			c["price"] = price
 			c["cover_image"] = cover
 			c["is_published"] = isPub
-			c["created_at"] = createdAt
+			c["created_at"] = createdAt.Format(time.RFC3339) // 🌟 แปลงกลับเป็น String สำหรับส่ง JSON ให้ Frontend
 
 			var playlists any
 			json.Unmarshal(plJSON, &playlists)
 			c["playlists"] = playlists
 
 			courses = append(courses, c)
+		} else {
+			log.Println("TutorGetMyCourses Scan Error:", err) // ดักจับ Error ใน Console ให้เห็นชัดๆ
 		}
 	}
 	if courses == nil {
@@ -100,6 +105,32 @@ func (h *Handler) TutorCreateCourse(w http.ResponseWriter, r *http.Request) {
 	WriteJSON(w, http.StatusCreated, map[string]string{"id": id, "message": "Course created"})
 }
 
+func (h *Handler) TutorUpdateCourse(w http.ResponseWriter, r *http.Request) {
+	courseId := chi.URLParam(r, "courseId")
+	var req struct {
+		Title       string  `json:"title"`
+		Description string  `json:"description"`
+		Price       float64 `json:"price"`
+		CoverImage  string  `json:"cover_image"`
+	}
+	if err := ReadJSON(r, &req); err != nil {
+		h.writeError(w, http.StatusBadRequest, "Invalid JSON")
+		return
+	}
+
+	_, err := h.TeachDB.Exec(`
+		UPDATE courses 
+		SET title = $1, description = $2, price = $3, cover_image = $4 
+		WHERE id = $5 AND tutor_id = $6
+	`, req.Title, req.Description, req.Price, req.CoverImage, courseId, GetUserIDStr(GetUser(r)))
+
+	if err != nil {
+		h.writeError(w, http.StatusInternalServerError, "Failed to update course")
+		return
+	}
+	WriteJSON(w, http.StatusOK, map[string]string{"message": "Course updated"})
+}
+
 func (h *Handler) TutorCreatePlaylist(w http.ResponseWriter, r *http.Request) {
 	courseId := chi.URLParam(r, "courseId")
 	var req struct {
@@ -124,7 +155,7 @@ func (h *Handler) TutorCreatePlaylistItem(w http.ResponseWriter, r *http.Request
 		Title       string `json:"title"`
 		ItemType    string `json:"item_type"` // video, file, exam
 		ContentUrl  string `json:"content_url"`
-		ContentData string `json:"content_data"` // แก้ไข: เพิ่มการรองรับข้อมูล JSON สำหรับข้อสอบ
+		ContentData string `json:"content_data"`
 		SortOrder   int    `json:"sort_order"`
 	}
 	if err := ReadJSON(r, &req); err != nil {
@@ -181,7 +212,6 @@ func (h *Handler) TutorUpdatePlaylist(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) TutorDeletePlaylist(w http.ResponseWriter, r *http.Request) {
 	playlistId := chi.URLParam(r, "playlistId")
-	// ตาราง playlist_items ควรมี ON DELETE CASCADE อยู่แล้วตอนลบ playlist
 	_, err := h.TeachDB.Exec(`DELETE FROM playlists WHERE id = $1`, playlistId)
 	if err != nil {
 		h.writeError(w, http.StatusInternalServerError, "Failed to delete playlist")
