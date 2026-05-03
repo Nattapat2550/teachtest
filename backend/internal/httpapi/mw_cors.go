@@ -36,8 +36,8 @@ func cors(allowedOrigins []string, isProd bool) func(http.Handler) http.Handler 
 					w.Header().Set("Vary", "Origin")
 					w.Header().Set("Access-Control-Allow-Credentials", "true")
 					w.Header().Set("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS")
-					w.Header().Set("Access-Control-Allow-Headers", "Content-Type,Authorization,x-requested-with,X-API-Key")
-					w.Header().Set("Access-Control-Expose-Headers", "Content-Length,Content-Type,Content-Disposition")
+					w.Header().Set("Access-Control-Allow-Headers", "Content-Type,Authorization,x-requested-with,X-API-Key,Range")
+					w.Header().Set("Access-Control-Expose-Headers", "Content-Length,Content-Type,Content-Disposition,Accept-Ranges,Content-Range")
 				}
 			}
 

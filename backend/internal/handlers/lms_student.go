@@ -138,17 +138,19 @@ func (h *Handler) StudentUpdateProgress(w http.ResponseWriter, r *http.Request) 
 		EnrollmentID string `json:"enrollment_id"`
 		ItemID       string `json:"item_id"`
 	}
+	
 	if err := ReadJSON(r, &req); err != nil {
+		h.writeError(w, http.StatusBadRequest, "Invalid request data") // 🌟 เพิ่มการแจ้งเตือน Error
 		return
 	}
-
+	
 	_, err := h.TeachDB.Exec(`
 		INSERT INTO user_progress (enrollment_id, item_id, is_completed, last_accessed) 
 		VALUES ($1, $2, true, CURRENT_TIMESTAMP) 
 		ON CONFLICT (enrollment_id, item_id) 
 		DO UPDATE SET is_completed = true, last_accessed = CURRENT_TIMESTAMP
 	`, req.EnrollmentID, req.ItemID)
-
+	
 	if err != nil {
 		h.writeError(w, http.StatusInternalServerError, "Failed to update progress")
 		return

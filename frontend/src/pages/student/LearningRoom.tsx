@@ -7,8 +7,6 @@ export default function LearningRoom() {
   const navigate = useNavigate();
   const [learningData, setLearningData] = useState<any>(null);
   const [activeItem, setActiveItem] = useState<any>(null);
-  
-  // 🌟 State สำหรับป้องกันการยิง API รัวๆ จน Progress หาย
   const [marking, setMarking] = useState(false);
 
   useEffect(() => {
@@ -30,11 +28,16 @@ export default function LearningRoom() {
       await studentApi.updateProgress(enrollmentId!, itemId);
       setLearningData((prev: any) => {
         const newData = { ...prev };
-        const newProgress = [...(newData.progress || [])];
+        // 🌟 แก้บัค: จัดการข้อมูลให้อยู่ใน nested object 'course' ให้ตรงกับที่ Backend ส่งมา
+        const newCourse = { ...(newData.course || {}) };
+        const newProgress = [...(newCourse.progress || [])];
+        
         if (!newProgress.some((p: any) => p.item_id === itemId)) {
           newProgress.push({ item_id: itemId, is_completed: true });
         }
-        newData.progress = newProgress;
+        
+        newCourse.progress = newProgress;
+        newData.course = newCourse;
         return newData;
       });
     } catch (e) {
@@ -43,7 +46,8 @@ export default function LearningRoom() {
   };
 
   const isCompleted = (itemId: string) => {
-    return learningData?.progress?.some((p: any) => p.item_id === itemId && p.is_completed);
+    // 🌟 แก้บัค: เปลี่ยนมาดึงค่าจาก .course.progress (ของเดิมหาไม่เจอตอนรีเฟรช)
+    return learningData?.course?.progress?.some((p: any) => p.item_id === itemId && p.is_completed);
   };
 
   const handleTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
@@ -51,14 +55,12 @@ export default function LearningRoom() {
     if (!video.duration) return;
     const percentWatched = video.currentTime / video.duration;
     
-    // 🌟 เช็คว่าดูถึง 90% และยังไม่เคยบันทึก + ไม่ได้กำลังบันทึกอยู่
     if (percentWatched >= 0.90 && !isCompleted(activeItem.id) && !marking) {
       setMarking(true);
       handleMarkProgress(activeItem.id).finally(() => setMarking(false));
     }
   };
 
-  // 🌟 แนบ Token เข้าไปใน URL เพื่อผ่านด่านตรวจความปลอดภัยที่ Backend
   const getFullUrl = (url: string) => {
     if (!url) return '';
     const token = localStorage.getItem('token') || '';
@@ -71,6 +73,20 @@ export default function LearningRoom() {
     return `${finalUrl}${separator}token=${token}`;
   };
 
+  // 🌟 คำนวณหลอด Progress ของนักเรียน
+  const calculateProgress = () => {
+    if (!learningData) return 0;
+    let totalItems = 0;
+    learningData.course.playlists?.forEach((pl: any) => {
+      totalItems += pl.items?.length || 0;
+    });
+    const completedItems = learningData.course.progress?.filter((p: any) => p.is_completed).length || 0;
+    if (totalItems === 0) return 0;
+    return Math.round((completedItems / totalItems) * 100);
+  };
+
+  const percent = calculateProgress();
+
   if (!learningData) return <div className="flex justify-center items-center h-screen">กำลังโหลด...</div>;
 
   return (
@@ -79,7 +95,16 @@ export default function LearningRoom() {
       {/* Sidebar: Course Playlist */}
       <div className="w-full md:w-96 bg-white dark:bg-gray-800 border-r dark:border-gray-700 flex flex-col shadow-lg z-10">
         <div className="p-6 bg-linear-to-r from-blue-600 to-indigo-600 text-white">
-          <h2 className="text-xl font-black leading-snug">{learningData.course.title}</h2>
+          <h2 className="text-xl font-black leading-snug mb-3">{learningData.course.title}</h2>
+          
+          {/* 🌟 หลอด Progress ใน Sidebar */}
+          <div className="w-full bg-white/30 rounded-full h-2 overflow-hidden mb-1">
+            <div className="bg-green-400 h-full rounded-full transition-all duration-500" style={{ width: `${percent}%` }}></div>
+          </div>
+          <div className="flex justify-between text-xs font-medium text-blue-100">
+            <span>ความคืบหน้า</span>
+            <span>{percent}%</span>
+          </div>
         </div>
         
         <div className="flex-1 overflow-y-auto">
@@ -132,9 +157,11 @@ export default function LearningRoom() {
                   controls 
                   controlsList="nodownload" 
                   onContextMenu={(e) => e.preventDefault()} 
-                  className="w-full aspect-video outline-none" 
+                  className="w-full aspect-video outline-none bg-black" 
                   src={getFullUrl(activeItem.content_url)} 
                   onTimeUpdate={handleTimeUpdate}
+                  crossOrigin="use-credentials" 
+                  playsInline 
                 />
               </div>
             )}

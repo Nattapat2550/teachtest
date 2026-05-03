@@ -21,8 +21,16 @@ export default function TutorDashboard() {
   const [promoForm, setPromoForm] = useState({ code: '', discount_amount: 0 });
 
   useEffect(() => {
-    fetchCourses();
-  }, []);
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (uploading) {
+        e.preventDefault();
+        e.returnValue = 'คุณกำลังอัปโหลดไฟล์ หากรีเฟรชหรือปิดหน้าต่าง ข้อมูลจะสูญหาย ยืนยันการออกหรือไม่?';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [uploading]);
 
   const fetchCourses = async () => {
     try {
