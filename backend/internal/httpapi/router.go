@@ -53,6 +53,8 @@ func NewRouter(cfg config.Config, mallDB *sql.DB) http.Handler {
 	}
 	r.Use(cors(allowedOrigins, true))
 
+	fs := http.FileServer(http.Dir("uploads"))
+	r.Handle("/uploads/*", http.StripPrefix("/uploads/", fs))
 	// 3. Initialize Handlers
 	p := pureapi.NewClient(cfg.PureAPIBaseURL, cfg.PureAPIKey, cfg.PureAPIInternalURL)
 	h := handlers.New(cfg, p, mallDB)
@@ -76,7 +78,7 @@ func NewRouter(cfg config.Config, mallDB *sql.DB) http.Handler {
 	r.Route("/api/admin", setupAdminRoutes(h))
 	r.Route("/api/center", setupCenterRoutes(h))
 	r.Route("/api", setupLMSRoutes(h))
-	
+
 	r.Get("/api/homepage", h.HomepageGet)
 	r.With(h.RequireAdmin).Put("/api/homepage", h.HomepageUpdate)
 	

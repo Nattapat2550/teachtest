@@ -7,11 +7,11 @@ import (
 
 func setupLMSRoutes(h *handlers.Handler) func(chi.Router) {
 	return func(r chi.Router) {
-		// Public: ใครก็ดูคอร์สที่วางขายได้
+		// Public:
 		r.Get("/courses", h.GetPublishedCourses)
 		r.Get("/courses/{id}", h.GetCourseDetail)
 
-		// Student: ต้องล็อกอิน
+		// Student:
 		r.Group(func(r chi.Router) {
 			r.Use(h.RequireAuth)
 			r.Post("/student/enroll", h.StudentEnrollCourse)
@@ -19,24 +19,27 @@ func setupLMSRoutes(h *handlers.Handler) func(chi.Router) {
 			r.Post("/student/progress", h.StudentUpdateProgress)
 		})
 
-		// Tutor: ต้องมี Role เป็น tutor หรือ admin
+		// Tutor & Admin:
 		r.Group(func(r chi.Router) {
 			r.Use(h.RequireAuth)
 			r.Use(h.RequireRole("tutor", "admin"))
-			
+
 			r.Get("/tutor/courses", h.TutorGetMyCourses)
 			r.Post("/tutor/courses", h.TutorCreateCourse)
 			r.Post("/tutor/courses/{courseId}/promos", h.TutorCreatePromoCode)
 
-			// 🌟 Playlist Routes
+			// Playlist Management
 			r.Post("/tutor/courses/{courseId}/playlists", h.TutorCreatePlaylist)
-			r.Put("/tutor/playlists/{playlistId}", h.TutorUpdatePlaylist) // เพิ่มเส้นทางใหม่
-			r.Delete("/tutor/playlists/{playlistId}", h.TutorDeletePlaylist) // เพิ่มเส้นทางใหม่
+			r.Put("/tutor/playlists/{playlistId}", h.TutorUpdatePlaylist)
+			r.Delete("/tutor/playlists/{playlistId}", h.TutorDeletePlaylist)
 
-			// 🌟 Items Routes
+			// Playlist Items Management
 			r.Post("/tutor/playlists/{playlistId}/items", h.TutorCreatePlaylistItem)
-			r.Put("/tutor/items/{itemId}", h.TutorUpdatePlaylistItem) // เพิ่มเส้นทางใหม่
-			r.Delete("/tutor/items/{itemId}", h.TutorDeletePlaylistItem) // เพิ่มเส้นทางใหม่
+			r.Put("/tutor/items/{itemId}", h.TutorUpdatePlaylistItem)
+			r.Delete("/tutor/items/{itemId}", h.TutorDeletePlaylistItem)
+
+			// 🌟 Route สำหรับอัปโหลดไฟล์ (วิดีโอ/เอกสาร)
+			r.Post("/tutor/upload", h.UploadFile)
 		})
 	}
 }

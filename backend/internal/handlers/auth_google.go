@@ -57,15 +57,15 @@ func (h *Handler) AuthGoogleCallback(w http.ResponseWriter, r *http.Request) {
 		randomUserID = fmt.Sprintf("%v", user.ID)
 	}
 
+	// 🌟 ซิงค์ Role ใหม่
+	user.Role = h.syncUserRole(ctx, randomUserID, user.Role)
+
 	token, err := h.signToken(user.ID, randomUserID, user.Role)
 	if err != nil {
 		http.Redirect(w, r, front+"/login?error=oauth_failed", http.StatusFound)
 		return
 	}
 	h.setAuthCookie(w, token, true)
-
-	// 🌟 บันทึก Role พื้นฐานลง Database ทันทีที่ Google Login สำเร็จ
-	h.assignDefaultRole(ctx, randomUserID)
 
 	role := user.Role
 	if role == "" {
@@ -143,6 +143,9 @@ func (h *Handler) AuthGoogleMobileCallback(w http.ResponseWriter, r *http.Reques
 		randomUserID = fmt.Sprintf("%v", user.ID)
 	}
 
+	// 🌟 ซิงค์ Role ใหม่
+	user.Role = h.syncUserRole(ctx, randomUserID, user.Role)
+
 	token, err := h.signToken(user.ID, randomUserID, user.Role)
 	if err != nil {
 		h.writeError(w, http.StatusInternalServerError, "Token error")
@@ -150,18 +153,19 @@ func (h *Handler) AuthGoogleMobileCallback(w http.ResponseWriter, r *http.Reques
 	}
 	h.setAuthCookie(w, token, true)
 
-	// 🌟 บันทึก Role พื้นฐานลง Database ทันทีที่ Google Mobile Login สำเร็จ
-	h.assignDefaultRole(ctx, randomUserID)
-
 	WriteJSON(w, http.StatusOK, map[string]any{
 		"token":               token,
 		"role":                user.Role,
 		"isProfileIncomplete": false,
 		"owner": map[string]any{
 			"id":                  user.ID,
+			"user_id":             user.UserID,
 			"email":               user.Email,
 			"username":            user.Username,
-			"name":                info.Name,
+			"first_name":          user.FirstName,
+			"last_name":           user.LastName,
+			"tel":                 user.Tel,
+			"status":              user.Status,
 			"role":                user.Role,
 			"profile_picture_url": user.ProfilePictureURL,
 		},

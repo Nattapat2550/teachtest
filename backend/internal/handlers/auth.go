@@ -85,6 +85,32 @@ type verifyResp struct {
 	Reason *string `json:"reason"`
 }
 
+// 🌟 ฟังก์ชันจัดการ Role (ยึดตามฐานข้อมูลระบบ TeachDB เป็นหลัก)
+func (h *Handler) syncUserRole(ctx context.Context, userID string, pureRole string) string {
+	var dbRole string
+	err := h.TeachDB.QueryRowContext(ctx, "SELECT role FROM user_roles WHERE user_id = $1", userID).Scan(&dbRole)
+
+	if err == nil && dbRole != "" {
+		// ถ้าใน DB มีการตั้งสิทธิ์ (tutor/admin/student) ไว้แล้ว ให้ยึดสิทธิ์นั้น
+		return dbRole
+	}
+
+	// ถ้าเพิ่งสร้างบัญชีใหม่ ให้เป็น student ยกเว้นว่า PureAPI บังคับมาเป็น admin
+	newRole := "student"
+	if pureRole == "admin" {
+		newRole = "admin"
+	}
+
+	// บันทึก Role ลง DB เพื่อให้ครั้งต่อไปดึงมาใช้ได้เลย
+	_, _ = h.TeachDB.ExecContext(ctx, `
+		INSERT INTO user_roles (user_id, role) 
+		VALUES ($1, $2) 
+		ON CONFLICT (user_id) DO NOTHING
+	`, userID, newRole)
+
+	return newRole
+}
+
 // ------ REGISTER ------
 func (h *Handler) AuthRegister(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -235,15 +261,15 @@ func (h *Handler) AuthCompleteProfile(w http.ResponseWriter, r *http.Request) {
 		randomUserID = fmt.Sprintf("%v", user.ID)
 	}
 
+	// 🌟 ซิงค์ Role ใหม่
+	user.Role = h.syncUserRole(ctx, randomUserID, user.Role)
+
 	token, err := h.signToken(user.ID, randomUserID, user.Role)
 	if err != nil {
 		h.writeError(w, http.StatusInternalServerError, "Token error")
 		return
 	}
 	h.setAuthCookie(w, token, req.Remember)
-
-	// 🌟 บันทึก Role ลง Database
-	h.assignDefaultRole(ctx, randomUserID)
 
 	WriteJSON(w, http.StatusOK, map[string]any{
 		"ok":    true,
@@ -323,15 +349,15 @@ func (h *Handler) AuthLogin(w http.ResponseWriter, r *http.Request) {
 		randomUserID = fmt.Sprintf("%v", user.ID)
 	}
 
+	// 🌟 ซิงค์ Role ใหม่
+	user.Role = h.syncUserRole(ctx, randomUserID, user.Role)
+
 	token, err := h.signToken(user.ID, randomUserID, user.Role)
 	if err != nil {
 		h.writeError(w, http.StatusInternalServerError, "Token error")
 		return
 	}
 	h.setAuthCookie(w, token, req.Remember)
-
-	// 🌟 บันทึก Role ลง Database
-	h.assignDefaultRole(ctx, randomUserID)
 
 	WriteJSON(w, http.StatusOK, map[string]any{
 		"ok":          true,
@@ -377,6 +403,16 @@ func (h *Handler) AuthStatus(w http.ResponseWriter, r *http.Request) {
 		WriteJSON(w, http.StatusOK, map[string]any{"authenticated": false, "reason": "banned"})
 		return
 	}
+
+	var randomUserID string
+	if user.UserID != nil {
+		randomUserID = *user.UserID
+	} else {
+		randomUserID = fmt.Sprintf("%v", user.ID)
+	}
+
+	// 🌟 ซิงค์ Role ใหม่
+	user.Role = h.syncUserRole(ctx, randomUserID, user.Role)
 
 	WriteJSON(w, http.StatusOK, map[string]any{
 		"authenticated": true,
@@ -497,16 +533,4 @@ func randomTokenHex(nBytes int) string {
 	b := make([]byte, nBytes)
 	_, _ = rand.Read(b)
 	return hex.EncodeToString(b)
-}
-
-// 🌟 ฟังก์ชันจัดการ Role พื้นฐาน (เพิ่มลงฐานข้อมูลเพื่อกันบั๊ก)
-func (h *Handler) assignDefaultRole(ctx context.Context, userID string) {
-	_, err := h.TeachDB.ExecContext(ctx, `
-		INSERT INTO user_roles (user_id, role) 
-		VALUES ($1, 'student') 
-		ON CONFLICT (user_id) DO NOTHING
-	`, userID)
-	if err != nil {
-		fmt.Println("Failed to assign default role:", err)
-	}
 }
