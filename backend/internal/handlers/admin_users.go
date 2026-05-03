@@ -12,13 +12,11 @@ func (h *Handler) AdminGetUsers(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var users []map[string]any
 
-	// 1. Fetch Users
 	if err := h.Pure.Get(ctx, "/api/internal/admin/users", &users); err != nil {
 		h.writeError(w, http.StatusInternalServerError, "Failed to fetch users")
 		return
 	}
 
-	// 2. Fetch Wallet
 	wRows, err := h.TeachDB.Query("SELECT user_id, balance FROM user_wallets")
 	wallets := make(map[string]float64)
 	if err == nil {
@@ -32,7 +30,6 @@ func (h *Handler) AdminGetUsers(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// 3. Fetch Roles
 	rRows, err := h.TeachDB.Query("SELECT user_id, role FROM user_roles")
 	roles := make(map[string]string)
 	if err == nil {
@@ -46,7 +43,6 @@ func (h *Handler) AdminGetUsers(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// 4. Merge Data
 	for i, user := range users {
 		var uid string
 		if val, ok := user["user_id"]; ok && val != nil {
@@ -110,6 +106,7 @@ func (h *Handler) AdminUpdateUserRole(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// แก้บัค 500 ที่นี่ ปรับใช้ INSERT ... ON CONFLICT ที่เข้ากันได้กับฐานข้อมูลแน่นอน
 func (h *Handler) UpdateUserWallet(w http.ResponseWriter, r *http.Request) {
 	userID := chi.URLParam(r, "id")
 	var req struct {
@@ -124,7 +121,7 @@ func (h *Handler) UpdateUserWallet(w http.ResponseWriter, r *http.Request) {
 		INSERT INTO user_wallets (user_id, balance) 
 		VALUES ($1, $2)
 		ON CONFLICT (user_id) 
-		DO UPDATE SET balance = EXCLUDED.balance, updated_at = CURRENT_TIMESTAMP
+		DO UPDATE SET balance = EXCLUDED.balance
 	`, userID, req.Balance)
 
 	if err != nil {

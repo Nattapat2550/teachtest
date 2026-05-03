@@ -22,10 +22,6 @@ api.interceptors.response.use((response) => response, (error) => {
 
 export default api;
 
-// ==========================================
-// LMS API (Learning Management System)
-// ==========================================
-
 export const courseApi = {
   getPublishedCourses: () => api.get('/api/courses'),
   getCourseDetail: (id: string) => api.get(`/api/courses/${id}`),
@@ -34,6 +30,8 @@ export const courseApi = {
 export const tutorApi = {
   getMyCourses: () => api.get('/api/tutor/courses'),
   createCourse: (data: any) => api.post('/api/tutor/courses', data),
+  updateCourse: (id: string, data: any) => api.put(`/api/tutor/courses/${id}`, data),
+  deleteCourse: (id: string) => api.delete(`/api/tutor/courses/${id}`),
   
   createPlaylist: (courseId: string, data: any) => api.post(`/api/tutor/courses/${courseId}/playlists`, data),
   updatePlaylist: (playlistId: string, data: any) => api.put(`/api/tutor/playlists/${playlistId}`, data),
@@ -45,6 +43,17 @@ export const tutorApi = {
   
   getPromoCodes: (courseId: string) => api.get(`/api/tutor/courses/${courseId}/promos`),
   createPromoCode: (courseId: string, data: any) => api.post(`/api/tutor/courses/${courseId}/promos`, data),
+  updatePromoCode: (promoId: string, data: any) => api.put(`/api/tutor/promos/${promoId}`, data),
+  deletePromoCode: (promoId: string) => api.delete(`/api/tutor/promos/${promoId}`),
+
+  getPackages: () => api.get('/api/tutor/packages'),
+  createPackage: (data: any) => api.post('/api/tutor/packages', data),
+  updatePackage: (id: string, data: any) => api.put(`/api/tutor/packages/${id}`, data),
+  deletePackage: (id: string) => api.delete(`/api/tutor/packages/${id}`),
+
+  // Global Admin Promos
+  getGlobalPromos: () => api.get('/api/admin/promos'),
+  createGlobalPromo: (data: any) => api.post('/api/admin/promos', data)
 };
 
 export const studentApi = {

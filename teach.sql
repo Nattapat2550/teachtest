@@ -26,15 +26,25 @@ CREATE TABLE courses (
     access_duration_days INT NULL
 );
 
--- ตารางโค้ดส่วนลดสำหรับหลักสูตร (Promo Codes)
-CREATE TABLE promo_codes (
+CREATE TABLE course_packages (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    course_id UUID REFERENCES courses(id) ON DELETE CASCADE,
+    tutor_id VARCHAR(255) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    price DECIMAL(10, 2) DEFAULT 0.00,
+    cover_image TEXT,
+    course_ids JSONB DEFAULT '[]',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+-- ตารางโค้ดส่วนลดสำหรับหลักสูตร (Promo Codes)
+CREATE TABLE IF NOT EXISTS promo_codes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    course_id UUID REFERENCES courses(id) ON DELETE CASCADE NULL,
     code VARCHAR(50) NOT NULL,
     discount_amount DECIMAL(10, 2) NOT NULL,
-    max_uses INT DEFAULT 0, -- 0 หมายถึงไม่จำกัดจำนวนครั้ง
+    max_uses INT DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(course_id, code) -- โค้ดในคอร์สเดียวกันห้ามซ้ำ
+    UNIQUE(code)
 );
 
 -- ตารางเพลย์ลิสต์ (หมวดหมู่ในหลักสูตร)
@@ -59,6 +69,11 @@ CREATE TABLE playlist_items (
 -- ==========================================
 -- 3. ระบบการสั่งซื้อและการเรียน (Enrollments & Progress)
 -- ==========================================
+-- สร้างตารางกระเป๋าเงิน (แก้บัค Error 500)
+CREATE TABLE IF NOT EXISTS user_wallets (
+    user_id VARCHAR(255) PRIMARY KEY,
+    balance DECIMAL(10, 2) DEFAULT 0.00
+);
 
 -- ตารางการลงทะเบียนเรียน (เมื่อนักเรียนซื้อคอร์ส)
 CREATE TABLE course_enrollments (

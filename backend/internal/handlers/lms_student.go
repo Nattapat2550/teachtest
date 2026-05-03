@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"time"
 )
@@ -20,7 +19,6 @@ func (h *Handler) StudentEnrollCourse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// ตรวจสอบว่าซื้อหรือยัง
 	var existingId string
 	err := h.TeachDB.QueryRow("SELECT id FROM course_enrollments WHERE course_id = $1 AND student_id = $2", req.CourseID, studentId).Scan(&existingId)
 	if err == nil {
@@ -39,7 +37,8 @@ func (h *Handler) StudentEnrollCourse(w http.ResponseWriter, r *http.Request) {
 	if req.PromoCode != "" {
 		var discount float64
 		var maxUses int
-		errPromo := h.TeachDB.QueryRow("SELECT id, discount_amount, max_uses FROM promo_codes WHERE code = $1 AND course_id = $2", req.PromoCode, req.CourseID).Scan(&promoId, &discount, &maxUses)
+		// รองรับ Promo Code ส่วนกลางด้วย (course_id IS NULL)
+		errPromo := h.TeachDB.QueryRow("SELECT id, discount_amount, max_uses FROM promo_codes WHERE code = $1 AND (course_id = $2 OR course_id IS NULL)", req.PromoCode, req.CourseID).Scan(&promoId, &discount, &maxUses)
 		
 		if errPromo != nil {
 			h.writeError(w, http.StatusBadRequest, "Invalid promo code")
@@ -56,9 +55,7 @@ func (h *Handler) StudentEnrollCourse(w http.ResponseWriter, r *http.Request) {
 		}
 
 		pricePaid -= discount
-		if pricePaid < 0 {
-			pricePaid = 0
-		}
+		if pricePaid < 0 { pricePaid = 0 }
 	}
 
 	var enrollId string
@@ -67,7 +64,6 @@ func (h *Handler) StudentEnrollCourse(w http.ResponseWriter, r *http.Request) {
 		VALUES ($1, $2, $3, $4) RETURNING id`, req.CourseID, studentId, pricePaid, req.PromoCode).Scan(&enrollId)
 
 	if err != nil {
-		log.Println("Enroll Error:", err)
 		h.writeError(w, http.StatusInternalServerError, "Enrollment failed")
 		return
 	}
@@ -89,40 +85,23 @@ func (h *Handler) StudentGetMyLearning(w http.ResponseWriter, r *http.Request) {
 			c.id as course_id, c.title, c.description, c.cover_image,
 			COALESCE((
 				SELECT json_agg(
-					json_build_object(
-						'id', p.id,
-						'title', p.title,
-						'sort_order', p.sort_order,
+					json_build_object('id', p.id, 'title', p.title, 'sort_order', p.sort_order,
 						'items', COALESCE((
 							SELECT json_agg(
-								json_build_object(
-									'id', pi.id, 
-									'title', pi.title, 
-									'item_type', pi.item_type, 
-									'content_url', pi.content_url,
-									'content_data', pi.content_data,
-									'sort_order', pi.sort_order
-								) ORDER BY pi.sort_order
+								json_build_object('id', pi.id, 'title', pi.title, 'item_type', pi.item_type, 'content_url', pi.content_url, 'content_data', pi.content_data, 'sort_order', pi.sort_order) ORDER BY pi.sort_order
 							) FROM playlist_items pi WHERE pi.playlist_id = p.id
 						), '[]'::json)
 					) ORDER BY p.sort_order
 				) FROM playlists p WHERE p.course_id = c.id
 			), '[]'::json) as playlists,
-			COALESCE((
-				SELECT json_agg(
-					json_build_object('item_id', up.item_id, 'is_completed', up.is_completed)
-				) FROM user_progress up WHERE up.enrollment_id = ce.id
-			), '[]'::json) as progress
+			COALESCE((SELECT json_agg(json_build_object('item_id', up.item_id, 'is_completed', up.is_completed)) FROM user_progress up WHERE up.enrollment_id = ce.id), '[]'::json) as progress
 		FROM course_enrollments ce 
 		JOIN courses c ON ce.course_id = c.id 
 		WHERE ce.student_id = $1 
 		ORDER BY ce.enrolled_at DESC
 	`, studentId)
 
-	if err != nil {
-		h.writeError(w, http.StatusInternalServerError, "DB Error")
-		return
-	}
+	if err != nil { h.writeError(w, http.StatusInternalServerError, "DB Error"); return }
 	defer rows.Close()
 
 	var learnings []map[string]any
@@ -139,25 +118,12 @@ func (h *Handler) StudentGetMyLearning(w http.ResponseWriter, r *http.Request) {
 			json.Unmarshal(progJSON, &progress)
 
 			learnings = append(learnings, map[string]any{
-				"id":          enrollId,
-				"price_paid":  price,
-				"enrolled_at": enrolledAt.Format(time.RFC3339),
-				"course": map[string]any{
-					"id":          courseId,
-					"title":       title,
-					"description": desc,
-					"cover_image": cover,
-					"playlists":   playlists,
-					"progress":    progress,
-				},
+				"id": enrollId, "price_paid": price, "enrolled_at": enrolledAt.Format(time.RFC3339),
+				"course": map[string]any{"id": courseId, "title": title, "description": desc, "cover_image": cover, "playlists": playlists, "progress": progress},
 			})
-		} else {
-			log.Println("Scan error in GetMyLearning:", err)
 		}
 	}
-	if learnings == nil {
-		learnings = []map[string]any{}
-	}
+	if learnings == nil { learnings = []map[string]any{} }
 	WriteJSON(w, http.StatusOK, learnings)
 }
 
