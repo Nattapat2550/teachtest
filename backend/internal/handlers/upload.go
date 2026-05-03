@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,9 +14,8 @@ import (
 )
 
 func (h *Handler) UploadFile(w http.ResponseWriter, r *http.Request) {
-	// รับไฟล์สูงสุด 50MB
+	// รองรับไฟล์ขนาดสูงสุด 50MB (ปรับได้)
 	r.ParseMultipartForm(50 << 20)
-
 	file, header, err := r.FormFile("file")
 	if err != nil {
 		h.writeError(w, http.StatusBadRequest, "Failed to read file from request")
@@ -23,55 +23,66 @@ func (h *Handler) UploadFile(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	// สร้างโฟลเดอร์ uploads หากยังไม่มี
+	// สร้างโฟลเดอร์ uploads ถ้ายังไม่มี
 	os.MkdirAll("uploads", os.ModePerm)
 
-	// ตั้งชื่อไฟล์ด้วย Timestamp ป้องกันชื่อซ้ำ
+	// สร้างชื่อไฟล์ใหม่ ป้องกันการซ้ำและปัญหา URL (เปลี่ยนเว้นวรรคเป็น _)
 	filename := fmt.Sprintf("%d_%s", time.Now().Unix(), filepath.Base(header.Filename))
+	filename = strings.ReplaceAll(filename, " ", "_")
+	filename = strings.ReplaceAll(filename, "%20", "_")
+
 	savePath := filepath.Join("uploads", filename)
-	
 	out, err := os.Create(savePath)
 	if err != nil {
 		h.writeError(w, http.StatusInternalServerError, "Failed to save file on server")
 		return
 	}
 	defer out.Close()
+
 	io.Copy(out, file)
 
-	// ส่ง URL กลับให้ Frontend
+	// คืนค่า URL Relative ให้ Frontend นำไปใช้งาน
 	fileUrl := "/uploads/" + filename
 	WriteJSON(w, http.StatusOK, map[string]string{"url": fileUrl})
 }
 
 func (h *Handler) ServeProtectedFile(w http.ResponseWriter, r *http.Request) {
 	fileName := chi.URLParam(r, "file")
+	
+	// Decode URL กรณีที่มีการแปลง %20 กลับเป็น Space ป้องกันการหาไฟล์ไม่เจอ
+	if decodedName, err := url.PathUnescape(fileName); err == nil {
+		fileName = decodedName
+	}
+
 	filePath := filepath.Join("uploads", fileName)
 
+	// ตรวจสอบว่ามีไฟล์อยู่จริงหรือไม่
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		h.writeError(w, http.StatusNotFound, "File not found")
 		return
 	}
 
-	// อนุญาตให้โหลดไฟล์รูปภาพสาธารณะได้ (เพื่อไม่ให้หน้าแรกและรูปปกพัง)
 	ext := strings.ToLower(filepath.Ext(fileName))
+	// ให้รูปภาพเข้าถึงได้สาธารณะ
 	if ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".gif" || ext == ".webp" {
 		http.ServeFile(w, r, filePath)
 		return
 	}
 
-	// หากไม่ใช่รูปภาพ (เช่น mp4, pdf, zip) ต้องตรวจสอบ Token การล็อกอิน
+	// สำหรับไฟล์เอกสารและวิดีโอ (mp4, pdf, zip) ต้องตรวจสอบ Token
 	token := extractTokenFromReq(r)
 	if token == "" {
-		h.writeError(w, http.StatusUnauthorized, "Unauthorized: กรุณาเข้าสู่ระบบก่อนดูเนื้อหา")
-		return
-	}
-	_, err := h.parseToken(token)
-	if err != nil {
-		h.writeError(w, http.StatusUnauthorized, "Unauthorized: Token ไม่ถูกต้อง")
+		h.writeError(w, http.StatusUnauthorized, "Unauthorized: No token provided")
 		return
 	}
 
-	// สั่งปิดการ Cache ของไฟล์วิดีโอในเบราว์เซอร์เพื่อความปลอดภัยอีกชั้น
+	_, err := h.parseToken(token)
+	if err != nil {
+		h.writeError(w, http.StatusUnauthorized, "Unauthorized: Invalid token")
+		return
+	}
+
+	// ไม่ให้ Browser แคชไฟล์เหล่านี้ เพื่อความปลอดภัย
 	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate")
 	w.Header().Set("Pragma", "no-cache")
 
