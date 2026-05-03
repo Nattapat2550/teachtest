@@ -70,10 +70,16 @@ func (h *Handler) StudentGetMyLearning(w http.ResponseWriter, r *http.Request) {
 		COALESCE((
 			SELECT json_agg(
 				json_build_object(
-					'id', p.id, 'title', p.title, 'items', COALESCE((
+					'id', p.id,
+					'title', p.title,
+					'items', COALESCE((
 						SELECT json_agg(
-							json_build_object('id', pi.id, 'title', pi.title, 'item_type', pi.item_type, 'content_url', pi.content_url)
-							ORDER BY pi.sort_order
+							json_build_object(
+								'id', pi.id, 
+								'title', pi.title, 
+								'item_type', pi.item_type, 
+								'content_url', pi.content_url
+							) ORDER BY pi.sort_order
 						) FROM playlist_items pi WHERE pi.playlist_id = p.id
 					), '[]'::json)
 				) ORDER BY p.sort_order
@@ -101,7 +107,7 @@ func (h *Handler) StudentGetMyLearning(w http.ResponseWriter, r *http.Request) {
 		var enrollId, courseId, title string
 		var desc, cover *string
 		var price float64
-		var enrolledAt time.Time // 🌟 FIX: แก้จาก string เป็น time.Time เพื่อไม่ให้ Scan Error
+		var enrolledAt time.Time // แก้จาก string เป็น time.Time
 		var plJSON, progJSON []byte
 
 		if err := rows.Scan(&enrollId, &price, &enrolledAt, &courseId, &title, &desc, &cover, &plJSON, &progJSON); err == nil {
@@ -123,7 +129,7 @@ func (h *Handler) StudentGetMyLearning(w http.ResponseWriter, r *http.Request) {
 				},
 			})
 		} else {
-			log.Println("Scan error in GetMyLearning:", err) // 🌟 ดู Error ใน Console ได้ถ้ามีปัญหา
+			log.Println("Scan error in GetMyLearning:", err)
 		}
 	}
 

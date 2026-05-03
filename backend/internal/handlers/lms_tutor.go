@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"time"
-
 	"github.com/go-chi/chi/v5"
 )
 
@@ -13,6 +12,7 @@ func (h *Handler) TutorGetMyCourses(w http.ResponseWriter, r *http.Request) {
 	u := GetUser(r)
 	tutorId := GetUserIDStr(u)
 
+	// แก้ไข Query ให้ดึงข้อมูล content_url และ content_data ของวิดีโอออกมาด้วย
 	rows, err := h.TeachDB.Query(`
 		SELECT c.id, c.title, c.description, c.price, c.cover_image, c.is_published, c.created_at,
 		COALESCE(
@@ -23,59 +23,61 @@ func (h *Handler) TutorGetMyCourses(w http.ResponseWriter, r *http.Request) {
 					'sort_order', p.sort_order,
 					'items', COALESCE((
 						SELECT json_agg(
-							json_build_object('id', pi.id, 'title', pi.title, 'item_type', pi.item_type, 'content_url', pi.content_url, 'content_data', pi.content_data)
-							ORDER BY pi.sort_order
-						)
-						FROM playlist_items pi
-						WHERE pi.playlist_id = p.id
+							json_build_object(
+								'id', pi.id, 
+								'title', pi.title, 
+								'item_type', pi.item_type,
+								'content_url', pi.content_url,
+								'content_data', pi.content_data,
+								'sort_order', pi.sort_order
+							) ORDER BY pi.sort_order
+						) FROM playlist_items pi WHERE pi.playlist_id = p.id
 					), '[]'::json)
-				)
-				ORDER BY p.sort_order
-			)
-			FROM playlists p WHERE p.course_id = c.id), '[]'::json
+				) ORDER BY p.sort_order
+			) FROM playlists p WHERE p.course_id = c.id), '[]'::json
 		) as playlists
 		FROM courses c
 		WHERE c.tutor_id = $1
 		ORDER BY c.created_at DESC
 	`, tutorId)
+
 	if err != nil {
-		h.writeError(w, http.StatusInternalServerError, "DB Error")
+		h.writeError(w, http.StatusInternalServerError, "DB Error: "+err.Error())
 		return
 	}
 	defer rows.Close()
 
 	var courses []map[string]any
 	for rows.Next() {
-		var c map[string]any = make(map[string]any)
 		var id, title string
 		var desc, cover *string
 		var price float64
 		var isPub bool
-		var createdAt time.Time // 🌟 แก้ไข: เปลี่ยนชนิดตัวแปรเป็น time.Time เพื่อไม่ให้เกิด Scan Error
+		var createdAt time.Time // ใช้ time.Time รับค่าจาก Postgres ตรงๆ
 		var plJSON []byte
 
 		if err := rows.Scan(&id, &title, &desc, &price, &cover, &isPub, &createdAt, &plJSON); err == nil {
-			c["id"] = id
-			c["title"] = title
-			c["description"] = desc
-			c["price"] = price
-			c["cover_image"] = cover
-			c["is_published"] = isPub
-			c["created_at"] = createdAt.Format(time.RFC3339) // 🌟 แปลงกลับเป็น String สำหรับส่ง JSON ให้ Frontend
-
 			var playlists any
 			json.Unmarshal(plJSON, &playlists)
-			c["playlists"] = playlists
 
-			courses = append(courses, c)
+			courses = append(courses, map[string]any{
+				"id":           id,
+				"title":        title,
+				"description":  desc,
+				"price":        price,
+				"cover_image":  cover,
+				"is_published": isPub,
+				"created_at":   createdAt.Format(time.RFC3339), // แปลงเป็น ISO String ให้ Frontend
+				"playlists":    playlists,
+			})
 		} else {
-			log.Println("TutorGetMyCourses Scan Error:", err) // ดักจับ Error ใน Console ให้เห็นชัดๆ
+			log.Println("TutorGetMyCourses Scan Error:", err)
 		}
 	}
+
 	if courses == nil {
 		courses = []map[string]any{}
 	}
-
 	WriteJSON(w, http.StatusOK, courses)
 }
 

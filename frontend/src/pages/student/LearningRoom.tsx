@@ -62,15 +62,20 @@ export default function LearningRoom() {
   };
 
   const getFullUrl = (url: string) => {
-    if (!url) return '';
-    const token = localStorage.getItem('token') || '';
-    let finalUrl = url;
-    if (!url.startsWith('http')) {
-      const baseUrl = api.defaults.baseURL || 'https://teachtest.onrender.com';
-      finalUrl = `${baseUrl}${url}`;
-    }
-    const separator = finalUrl.includes('?') ? '&' : '?';
-    return `${finalUrl}${separator}token=${token}`;
+  if (!url) return '';
+  const token = localStorage.getItem('token') || '';
+  let finalUrl = url;
+
+  // ถ้า url ไม่ได้เริ่มด้วย http (เป็น path จาก server) ให้เติม base url
+  if (!url.startsWith('http')) {
+    // ใช้ค่าจาก .env หรือ fallback ไปที่ production url
+    const baseUrl = import.meta.env.VITE_API_URL || 'https://teachtest.onrender.com';
+    finalUrl = `${baseUrl}${url}`;
+  }
+
+  // เติม token เข้าไปใน Query String เพื่อผ่าน Middleware ตรวจสอบสิทธิ์ของวิดีโอ
+  const separator = finalUrl.includes('?') ? '&' : '?';
+  return `${finalUrl}${separator}token=${token}`;
   };
 
   // 🌟 คำนวณหลอด Progress ของนักเรียน
