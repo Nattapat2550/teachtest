@@ -12,17 +12,16 @@ export default function LearningRoom() {
   // 🔒 ป้องกันการเปิด DevTools และการกด Save Page
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // บล็อก F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C (DevTools)
+      // บล็อก F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C (DevTools) และ Ctrl+U, Ctrl+S
       if (
         e.key === 'F12' ||
         (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) ||
-        (e.ctrlKey && (e.key === 'U' || e.key === 'S')) // บล็อก Ctrl+U (View Source) และ Ctrl+S (Save)
+        (e.ctrlKey && (e.key === 'U' || e.key === 'S'))
       ) {
         e.preventDefault();
       }
     };
     
-    // บล็อกคลิกขวาทั้งหน้า (เสริมจากแท็ก Video)
     const handleContextMenu = (e: MouseEvent) => e.preventDefault();
 
     document.addEventListener('keydown', handleKeyDown);
@@ -175,7 +174,6 @@ export default function LearningRoom() {
             
             {activeItem.item_type === 'video' && (
               <div className="bg-black rounded-2xl overflow-hidden shadow-2xl ring-1 ring-gray-900/10 mb-8 relative">
-                {/* 🔒 ลบปุ่มดาวน์โหลด และปิดคลิกขวาที่ตัววิดีโอ */}
                 <video 
                   controls
                   controlsList="nodownload"

@@ -14,6 +14,7 @@ import (
 )
 
 func (h *Handler) UploadFile(w http.ResponseWriter, r *http.Request) {
+	// รองรับไฟล์ขนาดสูงสุด 50MB
 	r.ParseMultipartForm(50 << 20)
 	file, header, err := r.FormFile("file")
 	if err != nil {
@@ -24,6 +25,7 @@ func (h *Handler) UploadFile(w http.ResponseWriter, r *http.Request) {
 
 	os.MkdirAll("uploads", os.ModePerm)
 
+	// ทำความสะอาดชื่อไฟล์ แปลงเว้นวรรคและ %20 เป็น _ 
 	cleanName := header.Filename
 	cleanName = strings.ReplaceAll(cleanName, " ", "_")
 	cleanName = strings.ReplaceAll(cleanName, "%20", "_")
@@ -46,10 +48,12 @@ func (h *Handler) UploadFile(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ServeProtectedFile(w http.ResponseWriter, r *http.Request) {
 	fileName := chi.URLParam(r, "file")
 
+	// 1. ถอดรหัส URL (แก้บัค 404 สำหรับไฟล์ที่มีเว้นวรรค)
 	if decodedName, err := url.PathUnescape(fileName); err == nil {
 		fileName = decodedName
 	}
 
+	// 2. ค้นหาไฟล์แบบยืดหยุ่น
 	pathsToTry := []string{
 		filepath.Join("uploads", fileName),
 		filepath.Join("uploads", strings.ReplaceAll(fileName, " ", "_")),
@@ -71,28 +75,39 @@ func (h *Handler) ServeProtectedFile(w http.ResponseWriter, r *http.Request) {
 
 	ext := strings.ToLower(filepath.Ext(validFilePath))
 	
+	// 3. ปล่อยผ่านไฟล์รูปภาพให้เข้าถึงได้ปกติ
 	if ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".gif" || ext == ".webp" {
 		http.ServeFile(w, r, validFilePath)
 		return
 	}
 
-	// 🔒 1. ตรวจสอบ Token (ป้องกันคนนอก)
+	// 🔒 4. ตรวจสอบ Token (ป้องกันคนนอก)
 	token := extractTokenFromReq(r)
 	if token == "" {
 		h.writeError(w, http.StatusUnauthorized, "Unauthorized: No token provided")
 		return
 	}
+
 	if _, err := h.parseToken(token); err != nil {
 		h.writeError(w, http.StatusUnauthorized, "Unauthorized: Invalid token")
 		return
 	}
 
-	// 🔒 2. ตรวจจับการดาวน์โหลดทางอ้อม (ป้องกัน IDM และการก๊อป URL ไปเปิดตรงๆ)
-	// เบราว์เซอร์ปกติที่โหลดผ่าน <video src="..."> จะส่ง Sec-Fetch-Dest: video
+	// 🔒 5. Anti-Hotlinking & Anti-Downloader (บล็อกเว็บดูดคลิปและ IDM)
 	if ext == ".mp4" || ext == ".webm" {
-		dest := r.Header.Get("Sec-Fetch-Dest")
-		if dest != "video" && dest != "" {
-			h.writeError(w, http.StatusForbidden, "Direct downloading is not allowed")
+		referer := r.Header.Get("Referer")
+		frontendURL := strings.TrimRight(h.Cfg.FrontendURL, "/")
+		
+		// 5.1 บล็อกถ้าไม่มี Referer หรือไม่ได้ถูกเรียกมาจากโดเมนหน้าบ้านของเรา
+		if referer == "" || !strings.HasPrefix(referer, frontendURL) {
+			h.writeError(w, http.StatusForbidden, "Access Denied: Direct downloading or using external downloaders is strictly blocked.")
+			return
+		}
+
+		// 5.2 ตรวจสอบ Fetch Metadata บล็อกการเอา URL ไปวางเปิดตรงๆ บนเบราว์เซอร์
+		fetchMode := r.Header.Get("Sec-Fetch-Mode")
+		if fetchMode == "navigate" {
+			h.writeError(w, http.StatusForbidden, "Access Denied: Direct access is not allowed.")
 			return
 		}
 	}
