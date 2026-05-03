@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"time"
+
 	"github.com/go-chi/chi/v5"
 )
 
@@ -12,7 +13,6 @@ func (h *Handler) TutorGetMyCourses(w http.ResponseWriter, r *http.Request) {
 	u := GetUser(r)
 	tutorId := GetUserIDStr(u)
 
-	// แก้ไข Query ให้ดึงข้อมูล content_url และ content_data ของวิดีโอออกมาด้วย
 	rows, err := h.TeachDB.Query(`
 		SELECT c.id, c.title, c.description, c.price, c.cover_image, c.is_published, c.created_at,
 		COALESCE(
@@ -53,7 +53,7 @@ func (h *Handler) TutorGetMyCourses(w http.ResponseWriter, r *http.Request) {
 		var desc, cover *string
 		var price float64
 		var isPub bool
-		var createdAt time.Time // ใช้ time.Time รับค่าจาก Postgres ตรงๆ
+		var createdAt time.Time
 		var plJSON []byte
 
 		if err := rows.Scan(&id, &title, &desc, &price, &cover, &isPub, &createdAt, &plJSON); err == nil {
@@ -67,7 +67,7 @@ func (h *Handler) TutorGetMyCourses(w http.ResponseWriter, r *http.Request) {
 				"price":        price,
 				"cover_image":  cover,
 				"is_published": isPub,
-				"created_at":   createdAt.Format(time.RFC3339), // แปลงเป็น ISO String ให้ Frontend
+				"created_at":   createdAt.Format(time.RFC3339),
 				"playlists":    playlists,
 			})
 		} else {
@@ -151,6 +151,35 @@ func (h *Handler) TutorCreatePlaylist(w http.ResponseWriter, r *http.Request) {
 	WriteJSON(w, http.StatusCreated, map[string]string{"message": "Playlist created"})
 }
 
+func (h *Handler) TutorUpdatePlaylist(w http.ResponseWriter, r *http.Request) {
+	playlistId := chi.URLParam(r, "playlistId")
+	var req struct {
+		Title     string `json:"title"`
+		SortOrder int    `json:"sort_order"`
+	}
+	if err := ReadJSON(r, &req); err != nil {
+		return
+	}
+
+	// อัปเดต Title และ SortOrder
+	_, err := h.TeachDB.Exec(`UPDATE playlists SET title = $1, sort_order = $2 WHERE id = $3`, req.Title, req.SortOrder, playlistId)
+	if err != nil {
+		h.writeError(w, http.StatusInternalServerError, "Failed to update playlist")
+		return
+	}
+	WriteJSON(w, http.StatusOK, map[string]string{"message": "Playlist updated"})
+}
+
+func (h *Handler) TutorDeletePlaylist(w http.ResponseWriter, r *http.Request) {
+	playlistId := chi.URLParam(r, "playlistId")
+	_, err := h.TeachDB.Exec(`DELETE FROM playlists WHERE id = $1`, playlistId)
+	if err != nil {
+		h.writeError(w, http.StatusInternalServerError, "Failed to delete playlist")
+		return
+	}
+	WriteJSON(w, http.StatusOK, map[string]string{"message": "Playlist deleted"})
+}
+
 func (h *Handler) TutorCreatePlaylistItem(w http.ResponseWriter, r *http.Request) {
 	playlistId := chi.URLParam(r, "playlistId")
 	var req struct {
@@ -168,11 +197,49 @@ func (h *Handler) TutorCreatePlaylistItem(w http.ResponseWriter, r *http.Request
 		INSERT INTO playlist_items (playlist_id, title, item_type, content_url, content_data, sort_order) 
 		VALUES ($1, $2, $3, $4, $5, $6)`, 
 		playlistId, req.Title, req.ItemType, req.ContentUrl, req.ContentData, req.SortOrder)
+
 	if err != nil {
 		h.writeError(w, http.StatusInternalServerError, "Failed to create item")
 		return
 	}
 	WriteJSON(w, http.StatusCreated, map[string]string{"message": "Item created"})
+}
+
+func (h *Handler) TutorUpdatePlaylistItem(w http.ResponseWriter, r *http.Request) {
+	itemId := chi.URLParam(r, "itemId")
+	var req struct {
+		Title       string `json:"title"`
+		ItemType    string `json:"item_type"`
+		ContentUrl  string `json:"content_url"`
+		ContentData string `json:"content_data"`
+		SortOrder   int    `json:"sort_order"`
+	}
+	if err := ReadJSON(r, &req); err != nil {
+		return
+	}
+
+	// อัปเดตข้อมูลไอเทมทั้งหมดรวมถึง SortOrder และ Content
+	_, err := h.TeachDB.Exec(`
+		UPDATE playlist_items 
+		SET title = $1, item_type = $2, content_url = $3, content_data = $4, sort_order = $5 
+		WHERE id = $6`, 
+		req.Title, req.ItemType, req.ContentUrl, req.ContentData, req.SortOrder, itemId)
+
+	if err != nil {
+		h.writeError(w, http.StatusInternalServerError, "Failed to update item")
+		return
+	}
+	WriteJSON(w, http.StatusOK, map[string]string{"message": "Item updated"})
+}
+
+func (h *Handler) TutorDeletePlaylistItem(w http.ResponseWriter, r *http.Request) {
+	itemId := chi.URLParam(r, "itemId")
+	_, err := h.TeachDB.Exec(`DELETE FROM playlist_items WHERE id = $1`, itemId)
+	if err != nil {
+		h.writeError(w, http.StatusInternalServerError, "Failed to delete item")
+		return
+	}
+	WriteJSON(w, http.StatusOK, map[string]string{"message": "Item deleted"})
 }
 
 func (h *Handler) TutorCreatePromoCode(w http.ResponseWriter, r *http.Request) {
@@ -191,62 +258,4 @@ func (h *Handler) TutorCreatePromoCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	WriteJSON(w, http.StatusCreated, map[string]string{"message": "Promo code created"})
-}
-
-// ===== จัดการ Playlist =====
-
-func (h *Handler) TutorUpdatePlaylist(w http.ResponseWriter, r *http.Request) {
-	playlistId := chi.URLParam(r, "playlistId")
-	var req struct {
-		Title string `json:"title"`
-	}
-	if err := ReadJSON(r, &req); err != nil {
-		return
-	}
-
-	_, err := h.TeachDB.Exec(`UPDATE playlists SET title = $1 WHERE id = $2`, req.Title, playlistId)
-	if err != nil {
-		h.writeError(w, http.StatusInternalServerError, "Failed to update playlist")
-		return
-	}
-	WriteJSON(w, http.StatusOK, map[string]string{"message": "Playlist updated"})
-}
-
-func (h *Handler) TutorDeletePlaylist(w http.ResponseWriter, r *http.Request) {
-	playlistId := chi.URLParam(r, "playlistId")
-	_, err := h.TeachDB.Exec(`DELETE FROM playlists WHERE id = $1`, playlistId)
-	if err != nil {
-		h.writeError(w, http.StatusInternalServerError, "Failed to delete playlist")
-		return
-	}
-	WriteJSON(w, http.StatusOK, map[string]string{"message": "Playlist deleted"})
-}
-
-// ===== จัดการ Playlist Items =====
-
-func (h *Handler) TutorUpdatePlaylistItem(w http.ResponseWriter, r *http.Request) {
-	itemId := chi.URLParam(r, "itemId")
-	var req struct {
-		Title string `json:"title"`
-	}
-	if err := ReadJSON(r, &req); err != nil {
-		return
-	}
-
-	_, err := h.TeachDB.Exec(`UPDATE playlist_items SET title = $1 WHERE id = $2`, req.Title, itemId)
-	if err != nil {
-		h.writeError(w, http.StatusInternalServerError, "Failed to update item")
-		return
-	}
-	WriteJSON(w, http.StatusOK, map[string]string{"message": "Item updated"})
-}
-
-func (h *Handler) TutorDeletePlaylistItem(w http.ResponseWriter, r *http.Request) {
-	itemId := chi.URLParam(r, "itemId")
-	_, err := h.TeachDB.Exec(`DELETE FROM playlist_items WHERE id = $1`, itemId)
-	if err != nil {
-		h.writeError(w, http.StatusInternalServerError, "Failed to delete item")
-		return
-	}
-	WriteJSON(w, http.StatusOK, map[string]string{"message": "Item deleted"})
 }

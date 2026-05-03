@@ -64,6 +64,7 @@ func (h *Handler) StudentGetMyLearning(w http.ResponseWriter, r *http.Request) {
 	u := GetUser(r)
 	studentId := GetUserIDStr(u)
 
+	// เพิ่ม content_data และ sort_order เข้าไปใน SQL Query เพื่อดึงข้อสอบ
 	rows, err := h.TeachDB.Query(`
 		SELECT ce.id as enrollment_id, ce.price_paid, ce.enrolled_at, 
 		c.id as course_id, c.title, c.description, c.cover_image,
@@ -72,13 +73,16 @@ func (h *Handler) StudentGetMyLearning(w http.ResponseWriter, r *http.Request) {
 				json_build_object(
 					'id', p.id,
 					'title', p.title,
+					'sort_order', p.sort_order,
 					'items', COALESCE((
 						SELECT json_agg(
 							json_build_object(
 								'id', pi.id, 
 								'title', pi.title, 
 								'item_type', pi.item_type, 
-								'content_url', pi.content_url
+								'content_url', pi.content_url,
+								'content_data', pi.content_data,
+								'sort_order', pi.sort_order
 							) ORDER BY pi.sort_order
 						) FROM playlist_items pi WHERE pi.playlist_id = p.id
 					), '[]'::json)
@@ -107,7 +111,7 @@ func (h *Handler) StudentGetMyLearning(w http.ResponseWriter, r *http.Request) {
 		var enrollId, courseId, title string
 		var desc, cover *string
 		var price float64
-		var enrolledAt time.Time // แก้จาก string เป็น time.Time
+		var enrolledAt time.Time
 		var plJSON, progJSON []byte
 
 		if err := rows.Scan(&enrollId, &price, &enrolledAt, &courseId, &title, &desc, &cover, &plJSON, &progJSON); err == nil {
@@ -146,7 +150,7 @@ func (h *Handler) StudentUpdateProgress(w http.ResponseWriter, r *http.Request) 
 	}
 	
 	if err := ReadJSON(r, &req); err != nil {
-		h.writeError(w, http.StatusBadRequest, "Invalid request data") // 🌟 เพิ่มการแจ้งเตือน Error
+		h.writeError(w, http.StatusBadRequest, "Invalid request data")
 		return
 	}
 	

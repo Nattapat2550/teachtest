@@ -9,10 +9,13 @@ export default function LearningRoom() {
   const [activeItem, setActiveItem] = useState<any>(null);
   const [marking, setMarking] = useState(false);
 
-  // 🔒 ป้องกันการเปิด DevTools และการกด Save Page
+  // Exam State
+  const [examAnswers, setExamAnswers] = useState<{ [qIdx: number]: number }>({});
+  const [examSubmitted, setExamSubmitted] = useState(false);
+  const [examScore, setExamScore] = useState(0);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // บล็อก F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C (DevTools) และ Ctrl+U, Ctrl+S
       if (
         e.key === 'F12' ||
         (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) ||
@@ -46,6 +49,14 @@ export default function LearningRoom() {
       }
     });
   }, [enrollmentId, navigate]);
+
+  // รีเซ็ตสถานะเวลาเปลี่ยนเนื้อหา
+  useEffect(() => {
+    setExamAnswers({});
+    setExamSubmitted(false);
+    setExamScore(0);
+    setMarking(false);
+  }, [activeItem]);
 
   const handleMarkProgress = async (itemId: string) => {
     try {
@@ -201,6 +212,72 @@ export default function LearningRoom() {
                 >
                   เปิดอ่านเอกสาร / ดาวน์โหลด
                 </a>
+              </div>
+            )}
+
+            {activeItem.item_type === 'exam' && (
+              <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-sm">
+                <h3 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">แบบทดสอบ: {activeItem.title}</h3>
+                {(() => {
+                  let questions: any[] = [];
+                  try { questions = JSON.parse(activeItem.content_data || '[]'); } catch (e) {}
+                  
+                  if (questions.length === 0) return <p className="text-gray-500">ไม่มีคำถามในแบบทดสอบนี้</p>;
+
+                  const handleSubmitExam = () => {
+                    let score = 0;
+                    questions.forEach((q, qIdx) => {
+                      const selectedChoiceIdx = examAnswers[qIdx];
+                      if (selectedChoiceIdx !== undefined && q.choices[selectedChoiceIdx]?.is_correct) {
+                        score++;
+                      }
+                    });
+                    setExamScore(score);
+                    setExamSubmitted(true);
+                    handleMarkProgress(activeItem.id); // บันทึกว่าทำแบบทดสอบเสร็จแล้ว
+                  };
+
+                  return (
+                    <div className="space-y-8 text-left">
+                      {questions.map((q: any, qIdx: number) => (
+                        <div key={qIdx} className="p-6 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700">
+                          <p className="font-bold text-lg mb-4 text-gray-900 dark:text-white">{qIdx + 1}. {q.question_text}</p>
+                          <div className="space-y-3 pl-2">
+                            {q.choices.map((c: any, cIdx: number) => (
+                              <label key={cIdx} className="flex items-center gap-3 cursor-pointer">
+                                <input type="radio"
+                                  name={`q_${qIdx}`}
+                                  checked={examAnswers[qIdx] === cIdx}
+                                  disabled={examSubmitted}
+                                  onChange={() => setExamAnswers({ ...examAnswers, [qIdx]: cIdx })}
+                                  className="w-5 h-5 text-blue-600 focus:ring-blue-500"
+                                />
+                                <span className={`${
+                                  examSubmitted && c.is_correct ? 'text-green-600 font-bold' : 'text-gray-700 dark:text-gray-300'
+                                } ${
+                                  examSubmitted && examAnswers[qIdx] === cIdx && !c.is_correct ? 'text-red-600 line-through' : ''
+                                }`}>
+                                  {c.choice_text}
+                                  {examSubmitted && c.is_correct && ' (ถูกต้อง)'}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                      {!examSubmitted ? (
+                        <button onClick={handleSubmitExam} className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-700 shadow-md transition-all">
+                          ส่งคำตอบ
+                        </button>
+                      ) : (
+                        <div className="p-6 bg-green-50 border border-green-200 dark:bg-green-900/20 dark:border-green-800 text-green-800 dark:text-green-400 rounded-xl text-center shadow-sm">
+                          <p className="text-3xl font-black mb-2">ได้คะแนน {examScore} / {questions.length}</p>
+                          <p className="font-medium">ระบบได้บันทึกความคืบหน้าของคุณแล้ว</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </div>
