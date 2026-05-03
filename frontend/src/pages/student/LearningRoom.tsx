@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { studentApi } from '../../services/api';
+import api, { studentApi } from '../../services/api';
 
 export default function LearningRoom() {
   const { enrollmentId } = useParams();
@@ -38,13 +38,20 @@ export default function LearningRoom() {
     return learningData?.progress?.some((p: any) => p.item_id === itemId && p.is_completed);
   };
 
-  // แก้ไข: เช็คว่าดูวิดีโอถึง 95% ของความยาวคลิปหรือยัง
   const handleTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
     const video = e.target as HTMLVideoElement;
     const percentWatched = video.currentTime / video.duration;
     if (percentWatched >= 0.95 && !isCompleted(activeItem.id)) {
       handleMarkProgress(activeItem.id);
     }
+  };
+
+  // 🌟 ฟังก์ชันจัดการ URL รองรับทั้ง URL ที่มี HTTP และ URL เก่าที่บันทึกมาแค่ /uploads/...
+  const getFullUrl = (url: string) => {
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    const baseUrl = api.defaults.baseURL || 'https://teachtest.onrender.com';
+    return `${baseUrl}${url}`;
   };
 
   if (!learningData) return <div className="flex justify-center items-center h-screen">กำลังโหลด...</div>;
@@ -107,7 +114,7 @@ export default function LearningRoom() {
                 <video 
                   controls 
                   className="w-full aspect-video outline-none" 
-                  src={activeItem.content_url} 
+                  src={getFullUrl(activeItem.content_url)} 
                   onTimeUpdate={handleTimeUpdate}
                 />
               </div>
@@ -120,7 +127,7 @@ export default function LearningRoom() {
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">เอกสารประกอบการเรียน</h3>
                 <a 
-                  href={activeItem.content_url} 
+                  href={getFullUrl(activeItem.content_url)} 
                   target="_blank" rel="noreferrer"
                   onClick={() => handleMarkProgress(activeItem.id)}
                   className="inline-flex items-center gap-2 bg-blue-600 text-white px-8 py-4 rounded-xl font-bold shadow-lg hover:bg-blue-700 hover:-translate-y-1 transition-all"

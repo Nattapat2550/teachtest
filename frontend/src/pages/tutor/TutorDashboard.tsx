@@ -8,12 +8,12 @@ export default function TutorDashboard() {
   const [courseForm, setCourseForm] = useState({ title: '', price: 0, description: '', cover_image: '' });
   const [playlistForm, setPlaylistForm] = useState({ title: '', sort_order: 1 });
   
-  // State สำหรับจัดการ Item (Video, File, Exam)
   const [itemForm, setItemForm] = useState({ title: '', item_type: 'video', sort_order: 1 });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
   
-  // State สำหรับจัดการข้อสอบ (Google Form Style)
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0); // 🌟 State สำหรับ Progress Bar
+  
   const [examQuestions, setExamQuestions] = useState([
     { question_text: '', choices: [{ choice_text: '', is_correct: true }] }
   ]);
@@ -55,7 +55,6 @@ export default function TutorDashboard() {
     } catch (e) { alert('เกิดข้อผิดพลาดในการสร้างบทเรียน'); }
   };
 
-  // ----- จัดการข้อสอบ -----
   const addQuestion = () => {
     setExamQuestions([...examQuestions, { question_text: '', choices: [{ choice_text: '', is_correct: true }] }]);
   };
@@ -84,16 +83,15 @@ export default function TutorDashboard() {
     setExamQuestions(newQs);
   };
 
-  // ----- บันทึกเนื้อหาหลัก (รับมือทั้งอัปโหลดไฟล์ และ ส่ง JSON ข้อสอบ) -----
   const handleCreateItem = async (e: React.FormEvent, playlistId: string) => {
     e.preventDefault();
     setUploading(true);
+    setUploadProgress(0); // 🌟 รีเซ็ต Progress ทุกครั้งที่เริ่ม
 
     try {
       let finalUrl = "";
       let finalData = "";
 
-      // 1. ถ้าเป็น Video หรือ File ให้ทำการอัปโหลดไฟล์ก่อน
       if (itemForm.item_type !== 'exam') {
         if (!selectedFile) {
           alert('กรุณาเลือกไฟล์ที่ต้องการอัปโหลด');
@@ -103,11 +101,20 @@ export default function TutorDashboard() {
         const fd = new FormData();
         fd.append('file', selectedFile);
         
-        // แก้ไข: ให้ Axios กำหนด Headers ให้โดยอัตโนมัติ เพื่อรักษา boundary
-        const uploadRes = await api.post('/api/tutor/upload', fd);
-        finalUrl = uploadRes.data.url;
+        // 🌟 เพิ่ม onUploadProgress เพื่อคำนวณเปอร์เซ็นต์
+        const uploadRes = await api.post('/api/tutor/upload', fd, {
+          onUploadProgress: (progressEvent) => {
+            if (progressEvent.total) {
+              const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+              setUploadProgress(percentCompleted);
+            }
+          }
+        });
+        
+        // 🌟 แก้ปัญหา 404: บังคับใส่ Backend URL นำหน้าเสมอ
+        const baseUrl = api.defaults.baseURL || 'https://teachtest.onrender.com';
+        finalUrl = baseUrl + uploadRes.data.url;
       } 
-      // 2. ถ้าเป็น Exam ให้แพ็คข้อมูล Array เป็น JSON String เพื่อเซฟลงฐานข้อมูล
       else {
         finalData = JSON.stringify(examQuestions);
       }
@@ -122,7 +129,6 @@ export default function TutorDashboard() {
 
       await tutorApi.createPlaylistItem(playlistId, payload);
       
-      // Reset Form
       setItemForm({ title: '', item_type: 'video', sort_order: 1 });
       setSelectedFile(null);
       setExamQuestions([{ question_text: '', choices: [{ choice_text: '', is_correct: true }] }]);
@@ -133,6 +139,7 @@ export default function TutorDashboard() {
       alert('เกิดข้อผิดพลาดในการอัปโหลดหรือบันทึกข้อมูล');
     } finally {
       setUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -149,7 +156,6 @@ export default function TutorDashboard() {
       <h1 className="text-3xl font-black mb-8 dark:text-white">Tutor Dashboard</h1>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* ฟอร์มสร้างคอร์สใหม่ */}
         <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700 h-fit">
           <h2 className="text-xl font-bold mb-4 dark:text-white">สร้างคอร์สใหม่</h2>
           <form onSubmit={handleCreateCourse} className="space-y-4">
@@ -161,7 +167,6 @@ export default function TutorDashboard() {
           </form>
         </div>
 
-        {/* จัดการเนื้อหา */}
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
             <h2 className="text-xl font-bold mb-4 dark:text-white">จัดการเนื้อหาคอร์ส</h2>
@@ -173,18 +178,15 @@ export default function TutorDashboard() {
             {selectedCourse && (
               <div className="space-y-6">
                 
-                {/* เพิ่มบทเรียน (Playlist) */}
                 <form onSubmit={handleCreatePlaylist} className="flex gap-4">
                   <input type="text" placeholder="ชื่อบทเรียน (เช่น บทที่ 1)" required className="flex-1 p-3 border rounded-xl dark:bg-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-500" value={playlistForm.title} onChange={e=>setPlaylistForm({...playlistForm, title: e.target.value})} />
                   <button type="submit" className="bg-purple-600 hover:bg-purple-700 text-white px-6 font-bold rounded-xl transition">เพิ่มบทเรียน</button>
                 </form>
 
-                {/* รายการบทเรียน */}
                 {selectedCourse.playlists?.map((pl: any) => (
                   <div key={pl.id} className="bg-gray-50 dark:bg-gray-900 p-5 rounded-xl border dark:border-gray-700">
                     <h3 className="font-bold text-lg mb-4 dark:text-white">{pl.title}</h3>
                     
-                    {/* รายการเนื้อหาย่อย */}
                     {pl.items && pl.items.length > 0 && (
                       <div className="mb-6 space-y-2">
                         {pl.items.map((it: any) => (
@@ -199,7 +201,6 @@ export default function TutorDashboard() {
                       </div>
                     )}
 
-                    {/* ฟอร์มเพิ่มเนื้อหาย่อย */}
                     <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
                       <h4 className="text-sm font-bold text-gray-500 mb-3">เพิ่มเนื้อหาลงใน "{pl.title}"</h4>
                       <div className="flex gap-3 mb-4">
@@ -211,7 +212,6 @@ export default function TutorDashboard() {
                         </select>
                       </div>
 
-                      {/* --- กรณีเลือกอัปโหลดไฟล์ --- */}
                       {itemForm.item_type !== 'exam' && (
                         <div className="mb-4">
                           <input 
@@ -223,7 +223,6 @@ export default function TutorDashboard() {
                         </div>
                       )}
 
-                      {/* --- กรณีเลือกสร้างข้อสอบ (Form Builder) --- */}
                       {itemForm.item_type === 'exam' && (
                         <div className="mb-4 p-4 border border-blue-200 bg-blue-50/50 dark:bg-blue-900/10 dark:border-blue-800 rounded-xl space-y-6">
                           {examQuestions.map((q, qIdx) => (
@@ -245,7 +244,6 @@ export default function TutorDashboard() {
                                       checked={c.is_correct}
                                       onChange={() => setCorrectChoice(qIdx, cIdx)}
                                       className="w-4 h-4 text-blue-600 cursor-pointer"
-                                      title="เลือกข้อนี้เป็นคำตอบที่ถูกต้อง"
                                     />
                                     <input 
                                       type="text" 
@@ -266,12 +264,28 @@ export default function TutorDashboard() {
                         </div>
                       )}
 
+                      {/* 🌟 แสดงหลอด Progress Bar ขณะอัปโหลด */}
+                      {uploading && itemForm.item_type !== 'exam' && (
+                        <div className="mb-4">
+                          <div className="flex justify-between text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">
+                            <span>กำลังอัปโหลด...</span>
+                            <span>{uploadProgress}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 overflow-hidden">
+                            <div 
+                              className="bg-blue-600 h-full rounded-full transition-all duration-300" 
+                              style={{ width: `${uploadProgress}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      )}
+
                       <button 
                         onClick={(e) => handleCreateItem(e, pl.id)} 
                         disabled={uploading || !itemForm.title}
                         className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 font-bold rounded-lg transition disabled:opacity-50"
                       >
-                        {uploading ? 'กำลังอัปโหลด/บันทึกข้อมูล...' : 'บันทึกเนื้อหานี้'}
+                        {uploading ? 'กำลังดำเนินการ...' : 'บันทึกเนื้อหานี้'}
                       </button>
                     </div>
                   </div>
