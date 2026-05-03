@@ -7,6 +7,9 @@ export default function LearningRoom() {
   const navigate = useNavigate();
   const [learningData, setLearningData] = useState<any>(null);
   const [activeItem, setActiveItem] = useState<any>(null);
+  
+  // 🌟 State สำหรับป้องกันการยิง API รัวๆ จน Progress หาย
+  const [marking, setMarking] = useState(false);
 
   useEffect(() => {
     studentApi.getMyLearning().then(res => {
@@ -25,10 +28,15 @@ export default function LearningRoom() {
   const handleMarkProgress = async (itemId: string) => {
     try {
       await studentApi.updateProgress(enrollmentId!, itemId);
-      const updatedData = { ...learningData };
-      updatedData.progress = updatedData.progress || [];
-      updatedData.progress.push({ item_id: itemId, is_completed: true });
-      setLearningData(updatedData);
+      setLearningData((prev: any) => {
+        const newData = { ...prev };
+        const newProgress = [...(newData.progress || [])];
+        if (!newProgress.some((p: any) => p.item_id === itemId)) {
+          newProgress.push({ item_id: itemId, is_completed: true });
+        }
+        newData.progress = newProgress;
+        return newData;
+      });
     } catch (e) {
       console.error('Failed to update progress', e);
     }
@@ -40,18 +48,27 @@ export default function LearningRoom() {
 
   const handleTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
     const video = e.target as HTMLVideoElement;
+    if (!video.duration) return;
     const percentWatched = video.currentTime / video.duration;
-    if (percentWatched >= 0.95 && !isCompleted(activeItem.id)) {
-      handleMarkProgress(activeItem.id);
+    
+    // 🌟 เช็คว่าดูถึง 90% และยังไม่เคยบันทึก + ไม่ได้กำลังบันทึกอยู่
+    if (percentWatched >= 0.90 && !isCompleted(activeItem.id) && !marking) {
+      setMarking(true);
+      handleMarkProgress(activeItem.id).finally(() => setMarking(false));
     }
   };
 
-  // 🌟 ฟังก์ชันจัดการ URL รองรับทั้ง URL ที่มี HTTP และ URL เก่าที่บันทึกมาแค่ /uploads/...
+  // 🌟 แนบ Token เข้าไปใน URL เพื่อผ่านด่านตรวจความปลอดภัยที่ Backend
   const getFullUrl = (url: string) => {
     if (!url) return '';
-    if (url.startsWith('http')) return url;
-    const baseUrl = api.defaults.baseURL || 'https://teachtest.onrender.com';
-    return `${baseUrl}${url}`;
+    const token = localStorage.getItem('token') || '';
+    let finalUrl = url;
+    if (!url.startsWith('http')) {
+      const baseUrl = api.defaults.baseURL || 'https://teachtest.onrender.com';
+      finalUrl = `${baseUrl}${url}`;
+    }
+    const separator = finalUrl.includes('?') ? '&' : '?';
+    return `${finalUrl}${separator}token=${token}`;
   };
 
   if (!learningData) return <div className="flex justify-center items-center h-screen">กำลังโหลด...</div>;
@@ -113,6 +130,8 @@ export default function LearningRoom() {
               <div className="bg-black rounded-2xl overflow-hidden shadow-2xl ring-1 ring-gray-900/10 mb-8">
                 <video 
                   controls 
+                  controlsList="nodownload" 
+                  onContextMenu={(e) => e.preventDefault()} 
                   className="w-full aspect-video outline-none" 
                   src={getFullUrl(activeItem.content_url)} 
                   onTimeUpdate={handleTimeUpdate}

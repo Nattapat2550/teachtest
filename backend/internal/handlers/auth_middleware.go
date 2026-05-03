@@ -69,9 +69,15 @@ func GetUser(r *http.Request) *AuthUser {
 }
 
 func extractTokenFromReq(r *http.Request) string {
+	// 1. อ่านจาก Header
 	if t := bearerToken(r); t != "" {
 		return t
 	}
+	// 2. อ่านจาก Query String (ใช้ตอนเบราว์เซอร์ร้องขอไฟล์วิดีโอและเอกสาร)
+	if t := r.URL.Query().Get("token"); t != "" {
+		return t
+	}
+	// 3. อ่านจาก Cookie
 	c, err := r.Cookie("token")
 	if err == nil && c != nil && strings.TrimSpace(c.Value) != "" {
 		return strings.TrimSpace(c.Value)
