@@ -43,6 +43,7 @@ export const tutorApi = {
   updatePlaylistItem: (itemId: string, data: any) => api.put(`/api/tutor/items/${itemId}`, data),
   deletePlaylistItem: (itemId: string) => api.delete(`/api/tutor/items/${itemId}`),
   
+  getPromoCodes: (courseId: string) => api.get(`/api/tutor/courses/${courseId}/promos`),
   createPromoCode: (courseId: string, data: any) => api.post(`/api/tutor/courses/${courseId}/promos`, data),
 };
 

@@ -20,80 +20,99 @@ func (h *Handler) StudentEnrollCourse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// ตรวจสอบว่าซื้อหรือยัง
 	var existingId string
 	err := h.TeachDB.QueryRow("SELECT id FROM course_enrollments WHERE course_id = $1 AND student_id = $2", req.CourseID, studentId).Scan(&existingId)
 	if err == nil {
-		h.writeError(w, http.StatusBadRequest, "คุณได้ลงทะเบียนคอร์สนี้ไปแล้ว")
+		h.writeError(w, http.StatusBadRequest, "You already enrolled this course")
 		return
 	}
 
 	var pricePaid float64
 	err = h.TeachDB.QueryRow("SELECT price FROM courses WHERE id = $1", req.CourseID).Scan(&pricePaid)
 	if err != nil {
-		h.writeError(w, http.StatusNotFound, "ไม่พบคอร์สเรียนนี้")
+		h.writeError(w, http.StatusNotFound, "Course not found")
 		return
 	}
 
+	var promoId string
 	if req.PromoCode != "" {
 		var discount float64
-		errPromo := h.TeachDB.QueryRow("SELECT discount_amount FROM promo_codes WHERE code = $1 AND course_id = $2", req.PromoCode, req.CourseID).Scan(&discount)
+		var maxUses int
+		errPromo := h.TeachDB.QueryRow("SELECT id, discount_amount, max_uses FROM promo_codes WHERE code = $1 AND course_id = $2", req.PromoCode, req.CourseID).Scan(&promoId, &discount, &maxUses)
+		
 		if errPromo != nil {
-			h.writeError(w, http.StatusBadRequest, "โค้ดส่วนลดไม่ถูกต้องหรือหมดอายุ")
+			h.writeError(w, http.StatusBadRequest, "Invalid promo code")
 			return
 		}
+
+		if maxUses > 0 {
+			var currentUses int
+			h.TeachDB.QueryRow("SELECT COUNT(*) FROM promo_code_uses WHERE promo_code_id = $1", promoId).Scan(&currentUses)
+			if currentUses >= maxUses {
+				h.writeError(w, http.StatusBadRequest, "Promo code usage limit reached")
+				return
+			}
+		}
+
 		pricePaid -= discount
 		if pricePaid < 0 {
 			pricePaid = 0
 		}
 	}
 
-	_, err = h.TeachDB.Exec(`
+	var enrollId string
+	err = h.TeachDB.QueryRow(`
 		INSERT INTO course_enrollments (course_id, student_id, price_paid, promo_code_used) 
-		VALUES ($1, $2, $3, $4)`, req.CourseID, studentId, pricePaid, req.PromoCode)
+		VALUES ($1, $2, $3, $4) RETURNING id`, req.CourseID, studentId, pricePaid, req.PromoCode).Scan(&enrollId)
 
 	if err != nil {
 		log.Println("Enroll Error:", err)
-		h.writeError(w, http.StatusInternalServerError, "เกิดข้อผิดพลาดในการลงทะเบียน")
+		h.writeError(w, http.StatusInternalServerError, "Enrollment failed")
 		return
 	}
 
-	WriteJSON(w, http.StatusCreated, map[string]string{"message": "ลงทะเบียนสำเร็จ"})
+	if req.PromoCode != "" && promoId != "" {
+		h.TeachDB.Exec("INSERT INTO promo_code_uses (promo_code_id, student_id, enrollment_id) VALUES ($1, $2, $3)", promoId, studentId, enrollId)
+	}
+
+	WriteJSON(w, http.StatusCreated, map[string]string{"message": "Enrolled successfully"})
 }
 
 func (h *Handler) StudentGetMyLearning(w http.ResponseWriter, r *http.Request) {
 	u := GetUser(r)
 	studentId := GetUserIDStr(u)
 
-	// เพิ่ม content_data และ sort_order เข้าไปใน SQL Query เพื่อดึงข้อสอบ
 	rows, err := h.TeachDB.Query(`
-		SELECT ce.id as enrollment_id, ce.price_paid, ce.enrolled_at, 
-		c.id as course_id, c.title, c.description, c.cover_image,
-		COALESCE((
-			SELECT json_agg(
-				json_build_object(
-					'id', p.id,
-					'title', p.title,
-					'sort_order', p.sort_order,
-					'items', COALESCE((
-						SELECT json_agg(
-							json_build_object(
-								'id', pi.id, 
-								'title', pi.title, 
-								'item_type', pi.item_type, 
-								'content_url', pi.content_url,
-								'content_data', pi.content_data,
-								'sort_order', pi.sort_order
-							) ORDER BY pi.sort_order
-						) FROM playlist_items pi WHERE pi.playlist_id = p.id
-					), '[]'::json)
-				) ORDER BY p.sort_order
-			) FROM playlists p WHERE p.course_id = c.id
-		), '[]'::json) as playlists,
-		COALESCE((
-			SELECT json_agg(
-				json_build_object('item_id', up.item_id, 'is_completed', up.is_completed)
-			) FROM user_progress up WHERE up.enrollment_id = ce.id
-		), '[]'::json) as progress
+		SELECT 
+			ce.id as enrollment_id, ce.price_paid, ce.enrolled_at, 
+			c.id as course_id, c.title, c.description, c.cover_image,
+			COALESCE((
+				SELECT json_agg(
+					json_build_object(
+						'id', p.id,
+						'title', p.title,
+						'sort_order', p.sort_order,
+						'items', COALESCE((
+							SELECT json_agg(
+								json_build_object(
+									'id', pi.id, 
+									'title', pi.title, 
+									'item_type', pi.item_type, 
+									'content_url', pi.content_url,
+									'content_data', pi.content_data,
+									'sort_order', pi.sort_order
+								) ORDER BY pi.sort_order
+							) FROM playlist_items pi WHERE pi.playlist_id = p.id
+						), '[]'::json)
+					) ORDER BY p.sort_order
+				) FROM playlists p WHERE p.course_id = c.id
+			), '[]'::json) as playlists,
+			COALESCE((
+				SELECT json_agg(
+					json_build_object('item_id', up.item_id, 'is_completed', up.is_completed)
+				) FROM user_progress up WHERE up.enrollment_id = ce.id
+			), '[]'::json) as progress
 		FROM course_enrollments ce 
 		JOIN courses c ON ce.course_id = c.id 
 		WHERE ce.student_id = $1 
@@ -136,7 +155,6 @@ func (h *Handler) StudentGetMyLearning(w http.ResponseWriter, r *http.Request) {
 			log.Println("Scan error in GetMyLearning:", err)
 		}
 	}
-
 	if learnings == nil {
 		learnings = []map[string]any{}
 	}
@@ -148,19 +166,18 @@ func (h *Handler) StudentUpdateProgress(w http.ResponseWriter, r *http.Request) 
 		EnrollmentID string `json:"enrollment_id"`
 		ItemID       string `json:"item_id"`
 	}
-	
 	if err := ReadJSON(r, &req); err != nil {
 		h.writeError(w, http.StatusBadRequest, "Invalid request data")
 		return
 	}
-	
+
 	_, err := h.TeachDB.Exec(`
 		INSERT INTO user_progress (enrollment_id, item_id, is_completed, last_accessed) 
 		VALUES ($1, $2, true, CURRENT_TIMESTAMP) 
 		ON CONFLICT (enrollment_id, item_id) 
 		DO UPDATE SET is_completed = true, last_accessed = CURRENT_TIMESTAMP
 	`, req.EnrollmentID, req.ItemID)
-	
+
 	if err != nil {
 		h.writeError(w, http.StatusInternalServerError, "Failed to update progress")
 		return

@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"github.com/go-chi/chi/v5"
+
 	"backend/internal/handlers"
 )
 
@@ -26,6 +27,9 @@ func setupLMSRoutes(h *handlers.Handler) func(chi.Router) {
 
 			r.Get("/tutor/courses", h.TutorGetMyCourses)
 			r.Post("/tutor/courses", h.TutorCreateCourse)
+			
+			// Promo Codes Management
+			r.Get("/tutor/courses/{courseId}/promos", h.TutorGetPromoCodes)
 			r.Post("/tutor/courses/{courseId}/promos", h.TutorCreatePromoCode)
 
 			// Playlist Management
@@ -38,7 +42,7 @@ func setupLMSRoutes(h *handlers.Handler) func(chi.Router) {
 			r.Put("/tutor/items/{itemId}", h.TutorUpdatePlaylistItem)
 			r.Delete("/tutor/items/{itemId}", h.TutorDeletePlaylistItem)
 
-			// 🌟 Route สำหรับอัปโหลดไฟล์ (วิดีโอ/เอกสาร)
+			// Upload Route
 			r.Post("/tutor/upload", h.UploadFile)
 		})
 	}

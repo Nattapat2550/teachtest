@@ -10,7 +10,6 @@ export default function LearningRoom() {
   const [marking, setMarking] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Exam State
   const [examAnswers, setExamAnswers] = useState<{ [qIdx: number]: any }>({});
   const [examSubmitted, setExamSubmitted] = useState(false);
   const [examScore, setExamScore] = useState(0);
@@ -96,8 +95,8 @@ export default function LearningRoom() {
     const maxKey = `video_max_${enrollmentId}_${activeItem.id}`;
     let maxWatched = parseFloat(localStorage.getItem(maxKey) || '0');
     
-    // ถ้าพยายาม Skip ข้ามไปจุดที่ยังไม่เคยดู ให้ดึงกลับมาที่ maxWatched (ยอมให้มีบัฟเฟอร์ 2 วิ)
-    if (video.currentTime > maxWatched + 2) {
+    // ถ้าพยายาม Skip ข้ามไปจุดที่ยังไม่เคยดู ให้ดึงกลับมาที่ maxWatched + บัฟเฟอร์ 1 วิ
+    if (video.currentTime > maxWatched + 1) {
       video.currentTime = maxWatched;
     }
   };
@@ -106,24 +105,23 @@ export default function LearningRoom() {
     const video = e.target as HTMLVideoElement;
     if (!video.duration) return;
 
-    // บันทึก Timestamp ปัจจุบัน
     localStorage.setItem(`video_time_${enrollmentId}_${activeItem.id}`, video.currentTime.toString());
 
-    // อัปเดต Max Watched Time
+    // อัปเดต Max Watched Time ตลอดเวลา (เฉพาะตอนที่ไม่ได้ Seeking)
     const maxKey = `video_max_${enrollmentId}_${activeItem.id}`;
     let maxWatched = parseFloat(localStorage.getItem(maxKey) || '0');
-    if (video.currentTime > maxWatched) {
+    if (!video.seeking && video.currentTime > maxWatched) {
       localStorage.setItem(maxKey, video.currentTime.toString());
     }
 
     const percentWatched = video.currentTime / video.duration;
-    // บันทึกความคืบหน้าทุก 1 นาที หรือเมื่อดูจบ 90%
+    // บันทึกความคืบหน้าทุกๆ 1 นาทีที่ดูจริง หรือเมื่อดูจบ 90%
     const isMinuteMark = Math.floor(video.currentTime) % 60 === 0 && Math.floor(video.currentTime) > 0;
 
     if ((percentWatched >= 0.90 || isMinuteMark) && !marking) {
       setMarking(true);
       handleMarkProgress(activeItem.id).finally(() => {
-        setTimeout(() => setMarking(false), 1500); // หน่วงเวลาป้องกันยิงซ้ำ
+        setTimeout(() => setMarking(false), 1500); 
       });
     }
   };
@@ -138,7 +136,6 @@ export default function LearningRoom() {
       const path = url.startsWith('/') ? url : `/${url}`;
       finalUrl = `${baseUrl}${path}`;
     }
-    
     const separator = finalUrl.includes('?') ? '&' : '?';
     return `${finalUrl}${separator}token=${token}`;
   };
@@ -261,11 +258,23 @@ export default function LearningRoom() {
                   
                   if (questions.length === 0) return <p className="text-gray-500">ไม่มีคำถามในแบบทดสอบนี้</p>;
 
+                  let maxScore = 0;
+                  questions.forEach(q => {
+                      if (q.question_type === 'multiple_choice' || (q.question_type === 'short_answer' && q.correct_answer && q.correct_answer.trim() !== '')) {
+                          maxScore++;
+                      }
+                  });
+
                   const handleSubmitExam = () => {
                     let score = 0;
                     questions.forEach((q, qIdx) => {
                       if (q.question_type === 'short_answer') {
-                        // อัตนัยจะถือว่าผ่านโดยอัตโนมัติ ไม่ได้เอามาบวกคะแนนในส่วนของชอยส์
+                        if (q.correct_answer && q.correct_answer.trim() !== '') {
+                           const ans = (examAnswers[qIdx] || '').toString().trim().toLowerCase();
+                           if (ans === q.correct_answer.trim().toLowerCase()) {
+                               score++;
+                           }
+                        }
                       } else {
                         const selectedChoiceIdx = examAnswers[qIdx];
                         if (selectedChoiceIdx !== undefined && q.choices[selectedChoiceIdx]?.is_correct) {
@@ -288,14 +297,21 @@ export default function LearningRoom() {
                           )}
                           
                           {q.question_type === 'short_answer' ? (
-                            <textarea
-                              className="w-full p-4 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                              rows={4}
-                              placeholder="พิมพ์คำตอบของคุณที่นี่..."
-                              disabled={examSubmitted}
-                              value={examAnswers[qIdx] || ''}
-                              onChange={(e) => setExamAnswers({...examAnswers, [qIdx]: e.target.value})}
-                            />
+                            <div className="mt-2">
+                              <textarea
+                                className="w-full p-4 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                rows={3}
+                                placeholder="พิมพ์คำตอบของคุณที่นี่..."
+                                disabled={examSubmitted}
+                                value={examAnswers[qIdx] || ''}
+                                onChange={(e) => setExamAnswers({...examAnswers, [qIdx]: e.target.value})}
+                              />
+                              {examSubmitted && q.correct_answer && q.correct_answer.trim() !== '' && (
+                                <div className="mt-3 p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm font-bold shadow-sm">
+                                    คำตอบที่ถูกต้อง: {q.correct_answer}
+                                </div>
+                              )}
+                            </div>
                           ) : (
                             <div className="space-y-3 pl-2">
                               {q.choices.map((c: any, cIdx: number) => (
@@ -329,8 +345,8 @@ export default function LearningRoom() {
                         <div className="p-6 bg-green-50 border border-green-200 dark:bg-green-900/20 dark:border-green-800 text-green-800 dark:text-green-400 rounded-xl text-center shadow-sm">
                           <p className="text-3xl font-black mb-2">ส่งคำตอบเรียบร้อยแล้ว!</p>
                           <p className="font-medium">
-                            ได้คะแนนปรนัย: {examScore} ข้อ <br />
-                            ระบบได้บันทึกความคืบหน้าของคุณแล้ว
+                            ได้คะแนนจากส่วนที่ตรวจอัตโนมัติ: {examScore} / {maxScore} ข้อ <br />
+                            (ระบบได้บันทึกความคืบหน้าของคุณแล้ว)
                           </p>
                         </div>
                       )}

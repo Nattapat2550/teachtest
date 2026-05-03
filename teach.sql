@@ -32,6 +32,7 @@ CREATE TABLE promo_codes (
     course_id UUID REFERENCES courses(id) ON DELETE CASCADE,
     code VARCHAR(50) NOT NULL,
     discount_amount DECIMAL(10, 2) NOT NULL,
+    max_uses INT DEFAULT 0, -- 0 หมายถึงไม่จำกัดจำนวนครั้ง
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(course_id, code) -- โค้ดในคอร์สเดียวกันห้ามซ้ำ
 );
@@ -126,6 +127,7 @@ CREATE TABLE documents (
 );
 CREATE TABLE promo_code_uses (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    student_id TYPE VARCHAR(255),
     promo_code_id UUID REFERENCES promo_codes(id) ON DELETE CASCADE,
     student_id UUID NOT NULL,
     enrollment_id UUID REFERENCES course_enrollments(id) ON DELETE CASCADE,
