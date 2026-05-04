@@ -39,6 +39,17 @@ export default function TutorDashboard() {
     { question_text: '', image_url: '', question_type: 'multiple_choice', correct_answer: '', choices: [{ choice_text: '', is_correct: true }] }
   ]);
 
+  // 🌟 เพิ่มฟังก์ชันแปลง URL ไฟล์ให้ถูกต้องพร้อมแนบ Token แก้ปัญหา 404
+  const getFullUrl = (url: string) => {
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    const baseUrl = import.meta.env.VITE_API_URL || 'https://teachtest.onrender.com';
+    const token = localStorage.getItem('token') || '';
+    const path = url.startsWith('/') ? url : `/${url}`;
+    const separator = path.includes('?') ? '&' : '?';
+    return `${baseUrl}${path}${separator}token=${token}`;
+  };
+
   useEffect(() => {
     fetchCourses();
     if (role === 'admin') fetchGlobalPromos();
@@ -154,7 +165,7 @@ export default function TutorDashboard() {
   const toggleCourseInPackage = (courseId: string) => {
     setPkgForm(prev => {
       const ids = prev.course_ids.includes(courseId) 
-        ? prev.course_ids.filter(id => id !== courseId)
+        ? prev.course_ids.filter((id: string) => id !== courseId)
         : [...prev.course_ids, courseId];
       return { ...prev, course_ids: ids };
     });
@@ -230,7 +241,7 @@ export default function TutorDashboard() {
           const fd = new FormData();
           fd.append('file', selectedFile);
           const uploadRes = await api.post('/api/tutor/upload', fd, {
-            onUploadProgress: (pev) => {
+            onUploadProgress: (pev: any) => {
               if (pev.total) setUploadProgress(Math.round((pev.loaded * 100) / pev.total));
             }
           });
@@ -296,12 +307,14 @@ export default function TutorDashboard() {
           <div className="mt-2 mb-4 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-2">แนบรูปภาพหรือวิดีโอประกอบโจทย์ (ถ้ามี)</label>
             <input type="file" accept="image/*,video/*" onChange={(e) => handleUploadQuestionMedia(e, qIdx)} className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer w-full" />
+            
+            {/* 🌟 แสดงรูปภาพหรือวิดีโอ โดยใช้ getFullUrl เพื่อแนบ Token ป้องกัน 404 Not Found */}
             {q.image_url && (
               <div className="mt-3">
                 {q.image_url.match(/\.(mp4|webm|mov)$/i) ? (
-                  <video src={q.image_url} controls className="max-w-xs rounded-lg shadow-sm" />
+                  <video src={getFullUrl(q.image_url)} controls className="max-w-xs rounded-lg shadow-sm" />
                 ) : (
-                  <img src={q.image_url} alt="Question Media" className="max-w-xs rounded-lg shadow-sm" />
+                  <img src={getFullUrl(q.image_url)} alt="Question Media" className="max-w-xs rounded-lg shadow-sm" />
                 )}
                 <button type="button" onClick={() => updateQuestion(qIdx, 'image_url', '')} className="text-xs text-red-500 font-bold mt-2 hover:underline">ลบไฟล์แนบ</button>
               </div>
