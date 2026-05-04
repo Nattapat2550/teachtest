@@ -53,7 +53,8 @@ export const tutorApi = {
 
   // Global Admin Promos
   getGlobalPromos: () => api.get('/api/admin/promos'),
-  createGlobalPromo: (data: any) => api.post('/api/admin/promos', data)
+  createGlobalPromo: (data: any) => api.post('/api/admin/promos', data),
+  updateGlobalPromo: (id: string, data: any) => api.put(`/api/admin/promos/${id}`, data) // <- เพิ่มตรงนี้
 };
 
 export const studentApi = {

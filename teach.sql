@@ -34,7 +34,9 @@ CREATE TABLE course_packages (
     price DECIMAL(10, 2) DEFAULT 0.00,
     cover_image TEXT,
     course_ids JSONB DEFAULT '[]',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    is_published BOOLEAN DEFAULT FALSE,
+    access_duration_days INT NULL
 );
 -- ตารางโค้ดส่วนลดสำหรับหลักสูตร (Promo Codes)
 CREATE TABLE IF NOT EXISTS promo_codes (

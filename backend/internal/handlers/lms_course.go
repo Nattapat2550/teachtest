@@ -27,7 +27,6 @@ func (h *Handler) GetPublishedCourses(w http.ResponseWriter, r *http.Request) {
 		var desc, cover sql.NullString
 		var price float64
 		var createdAt time.Time
-
 		if err := rows.Scan(&id, &title, &desc, &price, &cover, &createdAt); err == nil {
 			courses = append(courses, map[string]any{
 				"id":          id,
@@ -50,7 +49,7 @@ func (h *Handler) GetPublishedCourses(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetPublishedPackages(w http.ResponseWriter, r *http.Request) {
 	rows, err := h.TeachDB.Query(`
 		SELECT id, title, description, price, cover_image, course_ids, created_at 
-		FROM course_packages ORDER BY created_at DESC
+		FROM course_packages WHERE is_published = true ORDER BY created_at DESC
 	`)
 	if err != nil {
 		h.writeError(w, http.StatusInternalServerError, "DB Error: "+err.Error())
@@ -90,12 +89,17 @@ func (h *Handler) GetPackageDetail(w http.ResponseWriter, r *http.Request) {
 	var pkgId, title string
 	var desc, cover sql.NullString
 	var price float64
-	var cJSON []byte
+	var cJSON, includedJSON []byte
 
 	err := h.TeachDB.QueryRow(`
-		SELECT id, title, description, price, cover_image, course_ids 
-		FROM course_packages WHERE id = $1
-	`, id).Scan(&pkgId, &title, &desc, &price, &cover, &cJSON)
+		SELECT cp.id, cp.title, cp.description, cp.price, cp.cover_image, cp.course_ids,
+		COALESCE((
+			SELECT json_agg(json_build_object('id', c.id, 'title', c.title, 'cover_image', c.cover_image))
+			FROM courses c 
+			WHERE c.id IN (SELECT (jsonb_array_elements_text(cp.course_ids))::uuid)
+		), '[]'::json) as included_courses
+		FROM course_packages cp WHERE cp.id = $1 AND cp.is_published = true
+	`, id).Scan(&pkgId, &title, &desc, &price, &cover, &cJSON, &includedJSON)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -107,15 +111,18 @@ func (h *Handler) GetPackageDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var courseIds any
+	var includedCourses any
 	json.Unmarshal(cJSON, &courseIds)
+	json.Unmarshal(includedJSON, &includedCourses)
 
 	WriteJSON(w, http.StatusOK, map[string]any{
-		"id":          pkgId,
-		"title":       title,
-		"description": desc.String,
-		"price":       price,
-		"cover_image": cover.String,
-		"course_ids":  courseIds,
+		"id":               pkgId,
+		"title":            title,
+		"description":      desc.String,
+		"price":            price,
+		"cover_image":      cover.String,
+		"course_ids":       courseIds,
+		"included_courses": includedCourses,
 	})
 }
 
@@ -128,23 +135,22 @@ func (h *Handler) GetCourseDetail(w http.ResponseWriter, r *http.Request) {
 
 	err := h.TeachDB.QueryRow(`
 		SELECT c.id, c.title, c.description, c.price, c.cover_image,
-			COALESCE(
-				(SELECT json_agg(
-					json_build_object(
-						'id', p.id,
-						'title', p.title,
-						'sort_order', p.sort_order,
-						'items', COALESCE((
-							SELECT json_agg(
-								json_build_object('id', pi.id, 'title', pi.title, 'item_type', pi.item_type)
-								ORDER BY pi.sort_order
-							)
-							FROM playlist_items pi WHERE pi.playlist_id = p.id
-						), '[]'::json)
-					) ORDER BY p.sort_order
-				) FROM playlists p WHERE p.course_id = c.id), '[]'::json
-			) as playlists
-		FROM courses c WHERE c.id = $1
+		COALESCE(
+			(SELECT json_agg(
+				json_build_object(
+					'id', p.id,
+					'title', p.title,
+					'sort_order', p.sort_order,
+					'items', COALESCE((
+						SELECT json_agg(
+							json_build_object('id', pi.id, 'title', pi.title, 'item_type', pi.item_type) ORDER BY pi.sort_order
+						) FROM playlist_items pi WHERE pi.playlist_id = p.id
+					), '[]'::json)
+				) ORDER BY p.sort_order
+			) FROM playlists p WHERE p.course_id = c.id),
+			'[]'::json
+		) as playlists
+		FROM courses c WHERE c.id = $1 AND c.is_published = true
 	`, id).Scan(&courseId, &title, &desc, &price, &cover, &playlistsJSON)
 
 	if err != nil {

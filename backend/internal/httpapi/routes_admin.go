@@ -37,5 +37,6 @@ func setupAdminRoutes(h *handlers.Handler) func(chi.Router) {
 		// --- Global Promos ---
 		r.Get("/promos", h.AdminGetGlobalPromos)
 		r.Post("/promos", h.AdminCreateGlobalPromo)
+		r.Put("/promos/{id}", h.AdminUpdateGlobalPromo)
 	}
 }

@@ -10,10 +10,9 @@ export default function TutorDashboard() {
   const { role } = useSelector((state: any) => state.auth);
   const [activeTab, setActiveTab] = useState('manage_courses'); 
 
-  // State ทั้งหมดยังคงเดิม
   const [courses, setCourses] = useState<any[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<any>(null);
-  const [courseForm, setCourseForm] = useState({ title: '', price: 0, description: '', cover_image: '' });
+  const [courseForm, setCourseForm] = useState({ title: '', price: 0, description: '', cover_image: '', is_published: true, access_duration_days: null as number | null });
   const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
   
   const [editingPlaylistId, setEditingPlaylistId] = useState<string | null>(null);
@@ -26,11 +25,12 @@ export default function TutorDashboard() {
   const [editingPromoId, setEditingPromoId] = useState<string | null>(null);
 
   const [packages, setPackages] = useState<any[]>([]);
-  const [pkgForm, setPkgForm] = useState({ title: '', description: '', price: 0, cover_image: '', course_ids: [] as string[] });
+  const [pkgForm, setPkgForm] = useState({ title: '', description: '', price: 0, cover_image: '', course_ids: [] as string[], is_published: true, access_duration_days: null as number | null });
   const [editingPkgId, setEditingPkgId] = useState<string | null>(null);
 
   const [globalPromos, setGlobalPromos] = useState<any[]>([]);
   const [globalPromoForm, setGlobalPromoForm] = useState({ code: '', discount_amount: 0, max_uses: 0, course_id: '' });
+  const [editingGlobalPromoId, setEditingGlobalPromoId] = useState<string | null>(null);
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -84,7 +84,7 @@ export default function TutorDashboard() {
         await tutorApi.createCourse(courseForm);
         alert('สร้างคอร์สสำเร็จ!');
       }
-      setCourseForm({ title: '', price: 0, description: '', cover_image: '' });
+      setCourseForm({ title: '', price: 0, description: '', cover_image: '', is_published: true, access_duration_days: null });
       setEditingCourseId(null);
       fetchCourses();
     } catch (e) { alert('เกิดข้อผิดพลาด'); }
@@ -137,7 +137,7 @@ export default function TutorDashboard() {
         await tutorApi.createPackage(pkgForm);
         alert("สร้างแพ็กเกจสำเร็จ!");
       }
-      setPkgForm({ title: '', description: '', price: 0, cover_image: '', course_ids: [] });
+      setPkgForm({ title: '', description: '', price: 0, cover_image: '', course_ids: [], is_published: true, access_duration_days: null });
       setEditingPkgId(null);
       tutorApi.getPackages().then(res => setPackages(res.data));
     } catch (e) { alert("เกิดข้อผิดพลาด"); }
@@ -163,9 +163,15 @@ export default function TutorDashboard() {
   const handleSaveGlobalPromo = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await tutorApi.createGlobalPromo(globalPromoForm);
-      alert("สร้างโค้ดกลางสำเร็จ!");
+      if (editingGlobalPromoId) {
+        await tutorApi.updateGlobalPromo(editingGlobalPromoId, globalPromoForm);
+        alert("อัปเดตโค้ดกลางสำเร็จ!");
+      } else {
+        await tutorApi.createGlobalPromo(globalPromoForm);
+        alert("สร้างโค้ดกลางสำเร็จ!");
+      }
       setGlobalPromoForm({ code: '', discount_amount: 0, max_uses: 0, course_id: '' });
+      setEditingGlobalPromoId(null);
       fetchGlobalPromos();
     } catch (e) { alert("ล้มเหลว หรือโค้ดซ้ำ"); }
   };
@@ -366,6 +372,7 @@ export default function TutorDashboard() {
           globalPromos={globalPromos} globalPromoForm={globalPromoForm}
           setGlobalPromoForm={setGlobalPromoForm} handleSaveGlobalPromo={handleSaveGlobalPromo}
           courses={courses} handleDeleteGlobalPromo={handleDeleteGlobalPromo}
+          editingGlobalPromoId={editingGlobalPromoId} setEditingGlobalPromoId={setEditingGlobalPromoId}
         />
       )}
     </div>

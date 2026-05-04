@@ -79,29 +79,34 @@ export default function CourseCatalog() {
         <div className="mb-12">
           <h1 className="text-3xl font-black mb-6 text-purple-600 dark:text-purple-400">🔥 แพ็กเกจสุดคุ้ม</h1>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {packages.map((pkg) => (
-              <div key={pkg.id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-purple-200 dark:border-gray-700 p-5 flex flex-col relative transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-                <div className="absolute top-2 right-2 bg-purple-500 text-white text-xs px-3 py-1.5 rounded-full z-10 font-bold shadow-md">
-                  สุดคุ้ม {pkg.course_ids?.length || 0} คอร์ส
+            {packages.map((pkg) => {
+              // ตรวจสอบว่ามีคอร์สครบหมดแล้วหรือยังในแพ็กเกจนี้
+              const isPackageOwned = pkg.course_ids && pkg.course_ids.length > 0 && pkg.course_ids.every((cid: string) => myCourses.includes(cid));
+              
+              return (
+                <div key={pkg.id} className={`bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-purple-200 dark:border-gray-700 p-5 flex flex-col relative transition-all duration-300 ${isPackageOwned ? 'opacity-60 grayscale hover:grayscale-0 hover:opacity-100' : 'hover:shadow-lg hover:-translate-y-1'}`}>
+                  <div className={`absolute top-2 right-2 ${isPackageOwned ? 'bg-green-500' : 'bg-purple-500'} text-white text-xs px-3 py-1.5 rounded-full z-10 font-bold shadow-md`}>
+                    {isPackageOwned ? 'ซื้อครบแล้ว' : `สุดคุ้ม ${pkg.course_ids?.length || 0} คอร์ส`}
+                  </div>
+                  <div className="aspect-video bg-gray-100 dark:bg-gray-900 rounded-xl mb-4 overflow-hidden">
+                    {pkg.cover_image ? <img src={pkg.cover_image} alt={pkg.title} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-400">No Image</div>}
+                  </div>
+                  <h2 className="font-bold text-lg line-clamp-2 dark:text-white mb-2">{pkg.title}</h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 line-clamp-2">{pkg.description}</p>
+                  <div className="mt-auto flex justify-between items-center">
+                    <p className="text-xl text-purple-600 dark:text-purple-400 font-black">
+                      {isPackageOwned ? 'คุณมีครบแล้ว' : `฿ ${Number(pkg.price).toLocaleString()}`}
+                    </p>
+                    <Link 
+                      to={isPackageOwned ? `/my-learning` : `/packages/${pkg.id}`}
+                      className={`${isPackageOwned ? 'bg-green-600 hover:bg-green-700' : 'bg-purple-600 hover:bg-purple-700'} text-white px-5 py-2.5 rounded-xl font-bold shadow-md transition`}
+                    >
+                      ดูรายละเอียด
+                    </Link>
+                  </div>
                 </div>
-                <div className="aspect-video bg-gray-100 dark:bg-gray-900 rounded-xl mb-4 overflow-hidden">
-                  {pkg.cover_image ? <img src={pkg.cover_image} alt={pkg.title} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-400">No Image</div>}
-                </div>
-                <h2 className="font-bold text-lg line-clamp-2 dark:text-white mb-2">{pkg.title}</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 line-clamp-2">{pkg.description}</p>
-                <div className="mt-auto flex justify-between items-center">
-                  <p className="text-xl text-purple-600 dark:text-purple-400 font-black">
-                    ฿ {Number(pkg.price).toLocaleString()}
-                  </p>
-                  <Link 
-                    to={`/packages/${pkg.id}`}
-                    className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-md transition"
-                  >
-                    ดูรายละเอียด
-                  </Link>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

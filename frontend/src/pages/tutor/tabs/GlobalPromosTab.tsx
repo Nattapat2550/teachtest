@@ -1,11 +1,13 @@
 import React from 'react';
 
 export default function GlobalPromosTab({
-  globalPromos, globalPromoForm, setGlobalPromoForm, handleSaveGlobalPromo, courses, handleDeleteGlobalPromo
+  globalPromos, globalPromoForm, setGlobalPromoForm, handleSaveGlobalPromo, courses, handleDeleteGlobalPromo, editingGlobalPromoId, setEditingGlobalPromoId
 }: any) {
   return (
     <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
-      <h2 className="text-xl font-bold mb-4 dark:text-white text-purple-600">สร้างโค้ดส่วนลดกลาง (ใช้ได้ทุกคอร์ส รวมถึงแพ็กเกจ)</h2>
+      <h2 className="text-xl font-bold mb-4 dark:text-white text-purple-600">
+        {editingGlobalPromoId ? 'แก้ไขโค้ดส่วนลดกลาง' : 'สร้างโค้ดส่วนลดกลาง (ใช้ได้ทุกคอร์ส รวมถึงแพ็กเกจ)'}
+      </h2>
       <form onSubmit={handleSaveGlobalPromo} className="flex flex-col sm:flex-row gap-4 items-end mb-8 border p-5 rounded-xl border-purple-200 bg-purple-50 dark:bg-purple-900/20">
         <div className="flex-1">
           <label className="block text-xs font-bold text-blue-700 dark:text-blue-400 mb-1">รหัสโค้ด</label>
@@ -26,7 +28,14 @@ export default function GlobalPromosTab({
             {courses.map((c: any) => <option key={c.id} value={c.id}>{c.title}</option>)}
           </select>
         </div>
-        <button type="submit" className="bg-purple-600 text-white font-bold px-6 py-2.5 rounded-lg hover:bg-purple-700 transition h-11.5">สร้างโค้ดกลาง</button>
+        <div className="flex gap-2">
+          <button type="submit" className="bg-purple-600 text-white font-bold px-6 py-2.5 rounded-lg hover:bg-purple-700 transition h-11.5">
+            {editingGlobalPromoId ? 'บันทึก' : 'สร้างโค้ดกลาง'}
+          </button>
+          {editingGlobalPromoId && (
+            <button type="button" onClick={() => { setEditingGlobalPromoId(null); setGlobalPromoForm({ code: '', discount_amount: 0, max_uses: 0, course_id: '' }); }} className="bg-gray-300 text-gray-800 font-bold px-4 py-2.5 rounded-lg hover:bg-gray-400 h-11.5">ยกเลิก</button>
+          )}
+        </div>
       </form>
 
       <h3 className="font-bold text-lg mb-4 dark:text-white">รายการโค้ดส่วนลดกลาง</h3>
@@ -38,7 +47,10 @@ export default function GlobalPromosTab({
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">เงื่อนไข: {gp.course_id ? `เฉพาะคอร์ส ID: ${gp.course_id}` : 'ใช้ได้ทุกอย่าง (Global)'}</p>
               <p className="text-xs font-bold text-gray-400 mt-1">ถูกใช้: {gp.uses?.length || 0} / {gp.max_uses > 0 ? gp.max_uses : 'ไม่จำกัด'}</p>
             </div>
-            <button onClick={() => handleDeleteGlobalPromo(gp.id)} className="bg-red-100 text-red-700 px-4 py-2 rounded-lg font-bold hover:bg-red-200 transition">ลบ</button>
+            <div className="flex gap-2">
+              <button onClick={() => { setEditingGlobalPromoId(gp.id); setGlobalPromoForm({ code: gp.code, discount_amount: gp.discount_amount, max_uses: gp.max_uses, course_id: gp.course_id || '' }); }} className="bg-blue-100 text-blue-700 px-3 py-2 rounded-lg font-bold hover:bg-blue-200 transition text-sm">แก้ไข</button>
+              <button onClick={() => handleDeleteGlobalPromo(gp.id)} className="bg-red-100 text-red-700 px-3 py-2 rounded-lg font-bold hover:bg-red-200 transition text-sm">ลบ</button>
+            </div>
           </div>
         ))}
       </div>

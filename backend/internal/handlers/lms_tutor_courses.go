@@ -15,11 +15,13 @@ func (h *Handler) TutorGetMyCourses(w http.ResponseWriter, r *http.Request) {
 
 	query := `
 		SELECT 
-			c.id, c.title, c.description, c.price, c.cover_image, c.is_published, c.created_at,
+			c.id, c.title, c.description, c.price, c.cover_image, c.is_published, c.access_duration_days, c.created_at,
 			COALESCE(
 				(SELECT json_agg(
 					json_build_object(
-						'id', p.id, 'title', p.title, 'sort_order', p.sort_order,
+						'id', p.id,
+						'title', p.title,
+						'sort_order', p.sort_order,
 						'items', COALESCE((
 							SELECT json_agg(
 								json_build_object('id', pi.id, 'title', pi.title, 'item_type', pi.item_type, 'content_url', pi.content_url, 'content_data', pi.content_data, 'sort_order', pi.sort_order) ORDER BY pi.sort_order
@@ -34,7 +36,6 @@ func (h *Handler) TutorGetMyCourses(w http.ResponseWriter, r *http.Request) {
 
 	var rows *sql.Rows
 	var err error
-
 	if u.Role == "admin" {
 		query += " ORDER BY c.created_at DESC"
 		rows, err = h.TeachDB.Query(query)
@@ -55,15 +56,29 @@ func (h *Handler) TutorGetMyCourses(w http.ResponseWriter, r *http.Request) {
 		var desc, cover *string
 		var price float64
 		var isPub bool
+		var accDur sql.NullInt64
 		var createdAt time.Time
 		var plJSON []byte
 
-		if err := rows.Scan(&id, &title, &desc, &price, &cover, &isPub, &createdAt, &plJSON); err == nil {
+		if err := rows.Scan(&id, &title, &desc, &price, &cover, &isPub, &accDur, &createdAt, &plJSON); err == nil {
 			var playlists any
 			json.Unmarshal(plJSON, &playlists)
+			
+			var duration *int
+			if accDur.Valid {
+				val := int(accDur.Int64)
+				duration = &val
+			}
+
 			courses = append(courses, map[string]any{
-				"id": id, "title": title, "description": desc, "price": price,
-				"cover_image": cover, "is_published": isPub, "created_at": createdAt.Format(time.RFC3339),
+				"id": id,
+				"title": title,
+				"description": desc,
+				"price": price,
+				"cover_image": cover,
+				"is_published": isPub,
+				"access_duration_days": duration,
+				"created_at": createdAt.Format(time.RFC3339),
 				"playlists": playlists,
 			})
 		}
@@ -77,17 +92,19 @@ func (h *Handler) TutorGetMyCourses(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) TutorCreateCourse(w http.ResponseWriter, r *http.Request) {
 	u := GetUser(r)
 	var req struct {
-		Title       string  `json:"title"`
-		Description string  `json:"description"`
-		Price       float64 `json:"price"`
-		CoverImage  string  `json:"cover_image"`
+		Title              string  `json:"title"`
+		Description        string  `json:"description"`
+		Price              float64 `json:"price"`
+		CoverImage         string  `json:"cover_image"`
+		IsPublished        bool    `json:"is_published"`
+		AccessDurationDays *int    `json:"access_duration_days"`
 	}
 	if err := ReadJSON(r, &req); err != nil {
 		return
 	}
 
 	var id string
-	err := h.TeachDB.QueryRow(`INSERT INTO courses (tutor_id, title, description, price, cover_image, is_published) VALUES ($1, $2, $3, $4, $5, true) RETURNING id`, GetUserIDStr(u), req.Title, req.Description, req.Price, req.CoverImage).Scan(&id)
+	err := h.TeachDB.QueryRow(`INSERT INTO courses (tutor_id, title, description, price, cover_image, is_published, access_duration_days) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`, GetUserIDStr(u), req.Title, req.Description, req.Price, req.CoverImage, req.IsPublished, req.AccessDurationDays).Scan(&id)
 	if err != nil {
 		h.writeError(w, http.StatusInternalServerError, "Failed to create course")
 		return
@@ -99,10 +116,12 @@ func (h *Handler) TutorUpdateCourse(w http.ResponseWriter, r *http.Request) {
 	courseId := chi.URLParam(r, "courseId")
 	u := GetUser(r)
 	var req struct {
-		Title       string  `json:"title"`
-		Description string  `json:"description"`
-		Price       float64 `json:"price"`
-		CoverImage  string  `json:"cover_image"`
+		Title              string  `json:"title"`
+		Description        string  `json:"description"`
+		Price              float64 `json:"price"`
+		CoverImage         string  `json:"cover_image"`
+		IsPublished        bool    `json:"is_published"`
+		AccessDurationDays *int    `json:"access_duration_days"`
 	}
 	if err := ReadJSON(r, &req); err != nil {
 		return
@@ -110,9 +129,9 @@ func (h *Handler) TutorUpdateCourse(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 	if u.Role == "admin" {
-		_, err = h.TeachDB.Exec(`UPDATE courses SET title=$1, description=$2, price=$3, cover_image=$4 WHERE id=$5`, req.Title, req.Description, req.Price, req.CoverImage, courseId)
+		_, err = h.TeachDB.Exec(`UPDATE courses SET title=$1, description=$2, price=$3, cover_image=$4, is_published=$5, access_duration_days=$6 WHERE id=$7`, req.Title, req.Description, req.Price, req.CoverImage, req.IsPublished, req.AccessDurationDays, courseId)
 	} else {
-		_, err = h.TeachDB.Exec(`UPDATE courses SET title=$1, description=$2, price=$3, cover_image=$4 WHERE id=$5 AND tutor_id=$6`, req.Title, req.Description, req.Price, req.CoverImage, courseId, GetUserIDStr(u))
+		_, err = h.TeachDB.Exec(`UPDATE courses SET title=$1, description=$2, price=$3, cover_image=$4, is_published=$5, access_duration_days=$6 WHERE id=$7 AND tutor_id=$8`, req.Title, req.Description, req.Price, req.CoverImage, req.IsPublished, req.AccessDurationDays, courseId, GetUserIDStr(u))
 	}
 
 	if err != nil {

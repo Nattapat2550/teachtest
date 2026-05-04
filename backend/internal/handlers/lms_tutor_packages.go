@@ -11,10 +11,10 @@ import (
 
 func (h *Handler) TutorGetPackages(w http.ResponseWriter, r *http.Request) {
 	u := GetUser(r)
-	query := `SELECT id, title, description, price, cover_image, course_ids, created_at FROM course_packages`
+	query := `SELECT id, title, description, price, cover_image, course_ids, is_published, access_duration_days, created_at FROM course_packages`
+	
 	var rows *sql.Rows
 	var err error
-
 	if u.Role == "admin" {
 		rows, err = h.TeachDB.Query(query + " ORDER BY created_at DESC")
 	} else {
@@ -33,11 +33,30 @@ func (h *Handler) TutorGetPackages(w http.ResponseWriter, r *http.Request) {
 		var desc, cover *string
 		var price float64
 		var cJSON []byte
+		var isPub bool
+		var accDur sql.NullInt64
 		var ca time.Time
-		if err := rows.Scan(&id, &title, &desc, &price, &cover, &cJSON, &ca); err == nil {
+		if err := rows.Scan(&id, &title, &desc, &price, &cover, &cJSON, &isPub, &accDur, &ca); err == nil {
 			var courseIds any
 			json.Unmarshal(cJSON, &courseIds)
-			pkgs = append(pkgs, map[string]any{"id": id, "title": title, "description": desc, "price": price, "cover_image": cover, "course_ids": courseIds, "created_at": ca})
+			
+			var duration *int
+			if accDur.Valid {
+				val := int(accDur.Int64)
+				duration = &val
+			}
+
+			pkgs = append(pkgs, map[string]any{
+				"id": id, 
+				"title": title, 
+				"description": desc, 
+				"price": price, 
+				"cover_image": cover, 
+				"course_ids": courseIds, 
+				"is_published": isPub,
+				"access_duration_days": duration,
+				"created_at": ca,
+			})
 		}
 	}
 	if pkgs == nil {
@@ -49,45 +68,49 @@ func (h *Handler) TutorGetPackages(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) TutorCreatePackage(w http.ResponseWriter, r *http.Request) {
 	u := GetUser(r)
 	var req struct {
-		Title       string   `json:"title"`
-		Description string   `json:"description"`
-		Price       float64  `json:"price"`
-		CoverImage  string   `json:"cover_image"`
-		CourseIds   []string `json:"course_ids"`
+		Title              string   `json:"title"`
+		Description        string   `json:"description"`
+		Price              float64  `json:"price"`
+		CoverImage         string   `json:"cover_image"`
+		CourseIds          []string `json:"course_ids"`
+		IsPublished        bool     `json:"is_published"`
+		AccessDurationDays *int     `json:"access_duration_days"`
 	}
 	if err := ReadJSON(r, &req); err != nil {
 		return
 	}
 
 	idsJSON, _ := json.Marshal(req.CourseIds)
-	_, err := h.TeachDB.Exec(`INSERT INTO course_packages (tutor_id, title, description, price, cover_image, course_ids) VALUES ($1, $2, $3, $4, $5, $6)`, GetUserIDStr(u), req.Title, req.Description, req.Price, req.CoverImage, string(idsJSON))
+	_, err := h.TeachDB.Exec(`INSERT INTO course_packages (tutor_id, title, description, price, cover_image, course_ids, is_published, access_duration_days) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`, GetUserIDStr(u), req.Title, req.Description, req.Price, req.CoverImage, string(idsJSON), req.IsPublished, req.AccessDurationDays)
 	if err != nil {
 		h.writeError(w, http.StatusInternalServerError, "Failed to create package")
 		return
 	}
-	WriteJSON(w, http.StatusOK, map[string]string{"message": "Package created"})
+	WriteJSON(w, http.StatusCreated, map[string]string{"message": "Package created"})
 }
 
 func (h *Handler) TutorUpdatePackage(w http.ResponseWriter, r *http.Request) {
 	pkgId := chi.URLParam(r, "packageId")
 	u := GetUser(r)
 	var req struct {
-		Title       string   `json:"title"`
-		Description string   `json:"description"`
-		Price       float64  `json:"price"`
-		CoverImage  string   `json:"cover_image"`
-		CourseIds   []string `json:"course_ids"`
+		Title              string   `json:"title"`
+		Description        string   `json:"description"`
+		Price              float64  `json:"price"`
+		CoverImage         string   `json:"cover_image"`
+		CourseIds          []string `json:"course_ids"`
+		IsPublished        bool     `json:"is_published"`
+		AccessDurationDays *int     `json:"access_duration_days"`
 	}
 	if err := ReadJSON(r, &req); err != nil {
 		return
 	}
-	idsJSON, _ := json.Marshal(req.CourseIds)
 
+	idsJSON, _ := json.Marshal(req.CourseIds)
 	var err error
 	if u.Role == "admin" {
-		_, err = h.TeachDB.Exec(`UPDATE course_packages SET title=$1, description=$2, price=$3, cover_image=$4, course_ids=$5 WHERE id=$6`, req.Title, req.Description, req.Price, req.CoverImage, string(idsJSON), pkgId)
+		_, err = h.TeachDB.Exec(`UPDATE course_packages SET title=$1, description=$2, price=$3, cover_image=$4, course_ids=$5, is_published=$6, access_duration_days=$7 WHERE id=$8`, req.Title, req.Description, req.Price, req.CoverImage, string(idsJSON), req.IsPublished, req.AccessDurationDays, pkgId)
 	} else {
-		_, err = h.TeachDB.Exec(`UPDATE course_packages SET title=$1, description=$2, price=$3, cover_image=$4, course_ids=$5 WHERE id=$6 AND tutor_id=$7`, req.Title, req.Description, req.Price, req.CoverImage, string(idsJSON), pkgId, GetUserIDStr(u))
+		_, err = h.TeachDB.Exec(`UPDATE course_packages SET title=$1, description=$2, price=$3, cover_image=$4, course_ids=$5, is_published=$6, access_duration_days=$7 WHERE id=$8 AND tutor_id=$9`, req.Title, req.Description, req.Price, req.CoverImage, string(idsJSON), req.IsPublished, req.AccessDurationDays, pkgId, GetUserIDStr(u))
 	}
 
 	if err != nil {
@@ -100,12 +123,14 @@ func (h *Handler) TutorUpdatePackage(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) TutorDeletePackage(w http.ResponseWriter, r *http.Request) {
 	pkgId := chi.URLParam(r, "packageId")
 	u := GetUser(r)
+
 	var err error
 	if u.Role == "admin" {
 		_, err = h.TeachDB.Exec(`DELETE FROM course_packages WHERE id=$1`, pkgId)
 	} else {
 		_, err = h.TeachDB.Exec(`DELETE FROM course_packages WHERE id=$1 AND tutor_id=$2`, pkgId, GetUserIDStr(u))
 	}
+
 	if err != nil {
 		h.writeError(w, http.StatusInternalServerError, "Failed to delete package")
 		return
