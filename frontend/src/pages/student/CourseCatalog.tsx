@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import api, { courseApi, studentApi } from '../../services/api';
 import { useSelector } from 'react-redux';
 
 export default function CourseCatalog() {
-  const navigate = useNavigate();
   const [courses, setCourses] = useState<any[]>([]);
   const [packages, setPackages] = useState<any[]>([]);
   const [myCourses, setMyCourses] = useState<string[]>([]);
@@ -52,24 +51,6 @@ export default function CourseCatalog() {
     }
   };
 
-  const handleEnrollPackage = async (pkg: any) => {
-    if (!isAuthenticated) {
-      alert("กรุณาเข้าสู่ระบบก่อนซื้อแพ็กเกจ");
-      navigate('/login');
-      return;
-    }
-    const promo = prompt(`ซื้อแพ็กเกจ: ${pkg.title}\nราคา: ฿${pkg.price}\n\nใส่โค้ดส่วนลด (เว้นว่างไว้หากไม่มี):`);
-    if (promo !== null) {
-      try {
-        await api.post('/api/student/enroll-package', { package_id: pkg.id, promo_code: promo.trim() });
-        alert("ซื้อแพ็กเกจสำเร็จ! คอร์สถูกเพิ่มลงในห้องเรียนของคุณแล้ว");
-        window.location.reload();
-      } catch (err: any) {
-        alert(err.response?.data?.error || "เกิดข้อผิดพลาดในการชำระเงิน หรือยอดเงินไม่พอ");
-      }
-    }
-  };
-
   if (loading) return <div className="text-center mt-20 dark:text-white">กำลังโหลด...</div>;
 
   return (
@@ -112,12 +93,12 @@ export default function CourseCatalog() {
                   <p className="text-xl text-purple-600 dark:text-purple-400 font-black">
                     ฿ {Number(pkg.price).toLocaleString()}
                   </p>
-                  <button 
-                    onClick={() => handleEnrollPackage(pkg)}
+                  <Link 
+                    to={`/packages/${pkg.id}`}
                     className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-md transition"
                   >
-                    ซื้อแพ็กเกจนี้
-                  </button>
+                    ดูรายละเอียด
+                  </Link>
                 </div>
               </div>
             ))}

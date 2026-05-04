@@ -12,7 +12,7 @@ const CompleteProfilePage = lazy(() => import('./pages/CompleteProfilePage'));
 const HomePage = lazy(() => import('./pages/HomePage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 
-// Public Pages (เพิ่มตรงนี้)
+// Public Pages
 const AboutPage = lazy(() => import('./pages/AboutPage'));
 const ContactPage = lazy(() => import('./pages/ContactPage'));
 const DownloadPage = lazy(() => import('./pages/DownloadPage'));
@@ -23,6 +23,7 @@ const AdminPage = lazy(() => import('./pages/admin/AdminPage'));
 // LMS Components
 const CourseCatalog = lazy(() => import('./pages/student/CourseCatalog'));
 const CourseDetail = lazy(() => import('./pages/student/CourseDetail'));
+const PackageDetail = lazy(() => import('./pages/student/PackageDetail')); // คอมโพเนนต์ใหม่
 const MyLearning = lazy(() => import('./pages/student/MyLearning'));
 const LearningRoom = lazy(() => import('./pages/student/LearningRoom'));
 const TutorDashboard = lazy(() => import('./pages/tutor/TutorDashboard'));
@@ -37,7 +38,6 @@ const App: React.FC = () => {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/complete-profile" element={<CompleteProfilePage />} />
           
-          {/* Public Pages ที่กดเข้าไม่ได้ (เพิ่ม Route ตรงนี้) */}
           <Route path="/about" element={<AboutPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/download" element={<DownloadPage />} />
@@ -47,6 +47,7 @@ const App: React.FC = () => {
           <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
           <Route path="/courses" element={<ProtectedRoute><CourseCatalog /></ProtectedRoute>} />
           <Route path="/courses/:id" element={<ProtectedRoute><CourseDetail /></ProtectedRoute>} />
+          <Route path="/packages/:id" element={<ProtectedRoute><PackageDetail /></ProtectedRoute>} />
           <Route path="/my-learning" element={<ProtectedRoute roles={['student', 'admin', 'tutor']}><MyLearning /></ProtectedRoute>} />
           <Route path="/learn/:enrollmentId" element={<ProtectedRoute roles={['student', 'admin', 'tutor']}><LearningRoom /></ProtectedRoute>} />
           

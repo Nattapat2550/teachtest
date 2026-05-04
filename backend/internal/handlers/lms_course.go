@@ -85,6 +85,40 @@ func (h *Handler) GetPublishedPackages(w http.ResponseWriter, r *http.Request) {
 	WriteJSON(w, http.StatusOK, pkgs)
 }
 
+func (h *Handler) GetPackageDetail(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	var pkgId, title string
+	var desc, cover sql.NullString
+	var price float64
+	var cJSON []byte
+
+	err := h.TeachDB.QueryRow(`
+		SELECT id, title, description, price, cover_image, course_ids 
+		FROM course_packages WHERE id = $1
+	`, id).Scan(&pkgId, &title, &desc, &price, &cover, &cJSON)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			h.writeError(w, http.StatusNotFound, "Package not found")
+		} else {
+			h.writeError(w, http.StatusInternalServerError, "DB Error")
+		}
+		return
+	}
+
+	var courseIds any
+	json.Unmarshal(cJSON, &courseIds)
+
+	WriteJSON(w, http.StatusOK, map[string]any{
+		"id":          pkgId,
+		"title":       title,
+		"description": desc.String,
+		"price":       price,
+		"cover_image": cover.String,
+		"course_ids":  courseIds,
+	})
+}
+
 func (h *Handler) GetCourseDetail(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	var courseId, title string

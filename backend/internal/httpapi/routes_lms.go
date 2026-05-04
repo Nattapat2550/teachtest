@@ -9,13 +9,14 @@ func setupLMSRoutes(h *handlers.Handler) func(chi.Router) {
 	return func(r chi.Router) {
 		r.Get("/courses", h.GetPublishedCourses)
 		r.Get("/courses/{id}", h.GetCourseDetail)
-		r.Get("/packages", h.GetPublishedPackages) // เพิ่ม Route Packages สำหรับสาธารณะ
+		r.Get("/packages", h.GetPublishedPackages)
+		r.Get("/packages/{id}", h.GetPackageDetail) // เปิด Route สำหรับดึงรายละเอียดแพ็กเกจ
 
 		r.Group(func(r chi.Router) {
 			r.Use(h.RequireAuth)
 
 			r.Post("/student/enroll", h.StudentEnrollCourse)
-			r.Post("/student/enroll-package", h.StudentEnrollPackage) // เพิ่มการซื้อแพ็กเกจ
+			r.Post("/student/enroll-package", h.StudentEnrollPackage)
 			r.Get("/student/learning", h.StudentGetMyLearning)
 			r.Post("/student/progress", h.StudentUpdateProgress)
 

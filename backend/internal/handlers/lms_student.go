@@ -35,7 +35,9 @@ func (h *Handler) StudentEnrollCourse(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var pricePaid float64
-	err = tx.QueryRow("SELECT price FROM courses WHERE id = $1", req.CourseID).Scan(&pricePaid)
+	var tutorId string
+	// ดึงราคาและ ID ของติวเตอร์
+	err = tx.QueryRow("SELECT price, tutor_id FROM courses WHERE id = $1", req.CourseID).Scan(&pricePaid, &tutorId)
 	if err != nil {
 		h.writeError(w, http.StatusNotFound, "Course not found")
 		return
@@ -66,7 +68,6 @@ func (h *Handler) StudentEnrollCourse(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// เช็คยอดเงินและหักเงิน (Bug Fix 1)
 	var balance float64
 	err = tx.QueryRow("SELECT balance FROM user_wallets WHERE user_id = $1 FOR UPDATE", studentId).Scan(&balance)
 	if err == sql.ErrNoRows {
@@ -81,10 +82,24 @@ func (h *Handler) StudentEnrollCourse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// หักเงินนักเรียน
 	_, err = tx.Exec("UPDATE user_wallets SET balance = balance - $1 WHERE user_id = $2", pricePaid, studentId)
 	if err != nil {
 		h.writeError(w, http.StatusInternalServerError, "Failed to deduct wallet")
 		return
+	}
+
+	// เพิ่มเงินให้ติวเตอร์
+	if pricePaid > 0 && tutorId != "" {
+		_, err = tx.Exec(`
+			INSERT INTO user_wallets (user_id, balance) 
+			VALUES ($1, $2) 
+			ON CONFLICT (user_id) DO UPDATE SET balance = user_wallets.balance + EXCLUDED.balance
+		`, tutorId, pricePaid)
+		if err != nil {
+			h.writeError(w, http.StatusInternalServerError, "Failed to add funds to tutor")
+			return
+		}
 	}
 
 	var enrollId string
@@ -127,7 +142,9 @@ func (h *Handler) StudentEnrollPackage(w http.ResponseWriter, r *http.Request) {
 
 	var pricePaid float64
 	var courseIdsJSON []byte
-	err = tx.QueryRow("SELECT price, course_ids FROM course_packages WHERE id = $1", req.PackageID).Scan(&pricePaid, &courseIdsJSON)
+	var tutorId string
+	// ดึงข้อมูลราคา, คอร์ส และ ID ของติวเตอร์เจ้าของแพ็กเกจ
+	err = tx.QueryRow("SELECT price, course_ids, tutor_id FROM course_packages WHERE id = $1", req.PackageID).Scan(&pricePaid, &courseIdsJSON, &tutorId)
 	if err != nil {
 		h.writeError(w, http.StatusNotFound, "Package not found")
 		return
@@ -144,7 +161,6 @@ func (h *Handler) StudentEnrollPackage(w http.ResponseWriter, r *http.Request) {
 	if req.PromoCode != "" {
 		var discount float64
 		var maxUses int
-		// แพ็กเกจใช้ได้เฉพาะโค้ดส่วนลดกลาง (course_id IS NULL)
 		errPromo := tx.QueryRow("SELECT id, discount_amount, max_uses FROM promo_codes WHERE code = $1 AND course_id IS NULL", req.PromoCode).Scan(&promoId, &discount, &maxUses)
 		if errPromo != nil {
 			h.writeError(w, http.StatusBadRequest, "โค้ดส่วนลดไม่ถูกต้อง หรือไม่สามารถใช้กับแพ็กเกจได้")
@@ -164,7 +180,6 @@ func (h *Handler) StudentEnrollPackage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// เช็คยอดเงิน
 	var balance float64
 	err = tx.QueryRow("SELECT balance FROM user_wallets WHERE user_id = $1 FOR UPDATE", studentId).Scan(&balance)
 	if err == sql.ErrNoRows {
@@ -179,23 +194,34 @@ func (h *Handler) StudentEnrollPackage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// หักเงิน
+	// หักเงินนักเรียน
 	_, err = tx.Exec("UPDATE user_wallets SET balance = balance - $1 WHERE user_id = $2", pricePaid, studentId)
 	if err != nil {
 		h.writeError(w, http.StatusInternalServerError, "Failed to deduct wallet")
 		return
 	}
 
-	// Enroll เข้าไปในทุกคอร์สที่อยู่ในแพ็กเกจ
+	// เพิ่มเงินให้ติวเตอร์
+	if pricePaid > 0 && tutorId != "" {
+		_, err = tx.Exec(`
+			INSERT INTO user_wallets (user_id, balance) 
+			VALUES ($1, $2) 
+			ON CONFLICT (user_id) DO UPDATE SET balance = user_wallets.balance + EXCLUDED.balance
+		`, tutorId, pricePaid)
+		if err != nil {
+			h.writeError(w, http.StatusInternalServerError, "Failed to add funds to tutor")
+			return
+		}
+	}
+
 	for i, cid := range courseIds {
 		var enrollId string
 		var existingId string
 		errCheck := tx.QueryRow("SELECT id FROM course_enrollments WHERE course_id = $1 AND student_id = $2", cid, studentId).Scan(&existingId)
 		if errCheck == nil {
-			continue // ถ้ามีคอร์สนี้อยู่แล้วข้ามไป
+			continue
 		}
 		
-		// ลงบันทึกราคาจ่ายเฉพาะคอร์สแรก คอร์สต่อไปลง 0
 		p := 0.0
 		if i == 0 { p = pricePaid }
 
