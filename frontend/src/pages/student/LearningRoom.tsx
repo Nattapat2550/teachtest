@@ -10,10 +10,8 @@ export default function LearningRoom() {
   const [marking, setMarking] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   
-  // Tracking Unique Watched Seconds for Video
   const watchedSecondsRef = useRef<Set<number>>(new Set());
 
-  // Exam State
   const [examAnswers, setExamAnswers] = useState<{ [qIdx: number]: any }>({});
   const [examSubmitted, setExamSubmitted] = useState(false);
   const [examScore, setExamScore] = useState(0);
@@ -59,7 +57,6 @@ export default function LearningRoom() {
     setExamScore(0);
     setMarking(false);
     
-    // โหลดประวัติการดูวิดีโอจาก LocalStorage เพื่อให้เวลาสะสมยังอยู่ถ้ารีเฟรชหน้า
     if (activeItem?.item_type === 'video') {
       const savedWatched = localStorage.getItem(`video_watched_${enrollmentId}_${activeItem.id}`);
       if (savedWatched) {
@@ -99,7 +96,6 @@ export default function LearningRoom() {
     return learningData?.course?.progress?.some((p: any) => p.item_id === itemId && p.is_completed);
   };
 
-  // ----- Video Handlers -----
   const handleLoadedMetadata = (e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
     const video = e.target as HTMLVideoElement;
     const savedTime = localStorage.getItem(`video_time_${enrollmentId}_${activeItem.id}`);
@@ -112,16 +108,13 @@ export default function LearningRoom() {
     const video = e.target as HTMLVideoElement;
     if (!video.duration) return;
 
-    // บันทึกตำแหน่งวินาทีล่าสุด
     localStorage.setItem(`video_time_${enrollmentId}_${activeItem.id}`, video.currentTime.toString());
 
-    // สะสมเวลาการดู (ข้ามได้แต่วินาทีที่ข้ามจะไม่ถูกนับ)
     if (!video.seeking) {
       const currentSec = Math.floor(video.currentTime);
       if (!watchedSecondsRef.current.has(currentSec)) {
         watchedSecondsRef.current.add(currentSec);
         
-        // บันทึกวินาทีที่ดูสะสมลง LocalStorage ทุกๆ 5 วินาทีเพื่อลดการเขียนถี่เกินไป
         if (currentSec % 5 === 0) {
           localStorage.setItem(`video_watched_${enrollmentId}_${activeItem.id}`, JSON.stringify(Array.from(watchedSecondsRef.current)));
         }
@@ -130,7 +123,6 @@ export default function LearningRoom() {
 
     const watchedRatio = watchedSecondsRef.current.size / video.duration;
 
-    // ถ้าดูคลิปสะสมเกิน 90% ถึงจะถือว่าผ่าน
     if (watchedRatio >= 0.90 && !marking && !isCompleted(activeItem.id)) {
       setMarking(true);
       handleMarkProgress(activeItem.id).finally(() => {
@@ -304,8 +296,16 @@ export default function LearningRoom() {
                       {questions.map((q: any, qIdx: number) => (
                         <div key={qIdx} className="p-6 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700">
                           <p className="font-bold text-lg mb-4 text-gray-900 dark:text-white">{qIdx + 1}. {q.question_text}</p>
+                          
+                          {/* Rendering Exam Media (Bug Fix 2) */}
                           {q.image_url && (
-                            <img src={q.image_url} alt="Question" className="max-w-full md:max-w-md rounded-lg shadow-sm mb-4" />
+                            <div className="mb-6">
+                              {q.image_url.match(/\.(mp4|webm|mov)$/i) ? (
+                                <video src={getFullUrl(q.image_url)} controls className="max-w-full md:max-w-md rounded-lg shadow-sm" />
+                              ) : (
+                                <img src={getFullUrl(q.image_url)} alt="Question" className="max-w-full md:max-w-md rounded-lg shadow-sm" />
+                              )}
+                            </div>
                           )}
                           
                           {q.question_type === 'short_answer' ? (
@@ -327,9 +327,7 @@ export default function LearningRoom() {
                                   )}
                                 </>
                               ) : (
-                                <div className="text-gray-500 italic text-sm">
-                                  {/* ข้อนี้เป็นคำถามปลายเปิดหรือข้อความอ่าน ไม่มีช่องให้กรอกคำตอบ */}
-                                </div>
+                                <div className="text-gray-500 italic text-sm"></div>
                               )}
                             </div>
                           ) : (

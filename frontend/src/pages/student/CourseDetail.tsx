@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { courseApi, studentApi } from '../../services/api';
+import api, { courseApi, studentApi } from '../../services/api';
 import { useSelector } from 'react-redux';
 
 export default function CourseDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [course, setCourse] = useState<any>(null);
+  const [wallet, setWallet] = useState(0);
   const [promoCode, setPromoCode] = useState('');
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
@@ -20,22 +21,29 @@ export default function CourseDetail() {
         .catch(err => console.error(err))
         .finally(() => setLoading(false));
 
-      // ตรวจสอบว่าซื้อหรือยัง
       if (isAuthenticated) {
         studentApi.getMyLearning().then(res => {
           if (res.data && res.data.find((l: any) => l.course.id === id)) {
             setIsOwned(true);
           }
         }).catch(() => {});
+
+        api.get('/api/users/me/wallet').then(res => {
+            setWallet(res.data.balance || 0);
+        }).catch(() => {});
       }
     }
   }, [id, isAuthenticated]);
 
   const handleEnroll = async () => {
+    if (!isAuthenticated) {
+        navigate('/login');
+        return;
+    }
     setErrorMsg('');
     try {
       await studentApi.enrollCourse({ course_id: course.id, promo_code: promoCode });
-      alert('ลงทะเบียนสำเร็จ! กำลังพาไปห้องเรียน...');
+      alert('ลงทะเบียนสำเร็จ! หักยอดเงินเรียบร้อย กำลังพาไปห้องเรียน...');
       navigate('/my-learning');
     } catch (err: any) {
       setErrorMsg(err.response?.data?.error || 'เกิดข้อผิดพลาดในการชำระเงิน');
@@ -53,9 +61,13 @@ export default function CourseDetail() {
           <p className="text-gray-600 dark:text-gray-300 mb-6">{course.description}</p>
           
           <div className="bg-gray-50 dark:bg-gray-900 p-6 rounded-2xl border dark:border-gray-700">
-            <div className="text-3xl font-black text-blue-600 mb-4">฿ {Number(course.price).toLocaleString()}</div>
+            <div className="flex justify-between items-center mb-4">
+                <div className="text-3xl font-black text-blue-600">฿ {Number(course.price).toLocaleString()}</div>
+                {!isOwned && isAuthenticated && (
+                    <div className="text-sm font-bold text-green-600 dark:text-green-400">ยอดเงินของคุณ: ฿{wallet}</div>
+                )}
+            </div>
             
-            {/* ซ่อนช่องกรอกโปรโมโค้ดถ้าซื้อแล้ว */}
             {!isOwned && (
               <div className="flex gap-4 mb-6">
                 <input 
@@ -69,7 +81,7 @@ export default function CourseDetail() {
             )}
             
             {errorMsg && (
-              <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-xl text-sm font-bold text-center">
+              <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-xl text-sm font-bold text-center border border-red-200">
                 {errorMsg}
               </div>
             )}

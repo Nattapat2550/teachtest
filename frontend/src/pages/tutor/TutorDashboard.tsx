@@ -74,7 +74,6 @@ export default function TutorDashboard() {
     } catch (e) { console.error(e); }
   };
 
-  // --- Handlers: Course ---
   const handleSaveCourse = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -99,7 +98,6 @@ export default function TutorDashboard() {
     } catch (e) { alert("ลบไม่สำเร็จ"); }
   };
 
-  // --- Handlers: Promos ---
   const handleSavePromo = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCourse) return;
@@ -129,7 +127,6 @@ export default function TutorDashboard() {
     } catch (e) {}
   };
 
-  // --- Handlers: Packages ---
   const handleSavePackage = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -163,7 +160,6 @@ export default function TutorDashboard() {
     });
   };
 
-  // --- Handlers: Admin Global Promo ---
   const handleSaveGlobalPromo = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -174,7 +170,6 @@ export default function TutorDashboard() {
     } catch (e) { alert("ล้มเหลว หรือโค้ดซ้ำ"); }
   };
 
-  // --- Handlers: Content ---
   const handleSavePlaylist = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCourse) return;
@@ -251,19 +246,53 @@ export default function TutorDashboard() {
     setExamQuestions(newQs);
   };
 
-  // Reusable CSS Class สำหรับ File Input ให้สวยงามและชัดเจน
+  // จัดการอัปโหลดไฟล์สื่อของข้อสอบ
+  const handleUploadQuestionMedia = async (e: any, qIdx: number) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploading(true);
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+        const { data } = await api.post('/api/tutor/upload', fd);
+        updateQuestion(qIdx, 'image_url', data.url);
+    } catch (err) {
+        alert('อัปโหลดไฟล์ล้มเหลว');
+    } finally {
+        setUploading(false);
+    }
+  };
+
   const fileInputClass = "mb-4 block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-700 transition-all";
 
-  // Reusable JSX สำหรับการสร้างและแก้ไขข้อสอบ
   const renderExamEditor = () => (
     <div className="mb-4 p-4 border border-blue-200 bg-blue-50/50 dark:bg-blue-900/10 rounded-xl space-y-4">
       {examQuestions.map((q, qIdx) => (
         <div key={qIdx} className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700">
+          
           <select value={q.question_type || 'multiple_choice'} onChange={(e) => updateQuestion(qIdx, 'question_type', e.target.value)} className="p-2 mb-2 border rounded-md dark:bg-gray-900 dark:text-white outline-none font-bold">
             <option value="multiple_choice">ปรนัย (ตัวเลือก)</option>
             <option value="short_answer">อัตนัย / คำถามปลายเปิด</option>
           </select>
-          <input type="text" placeholder="โจทย์" value={q.question_text} onChange={(e) => updateQuestion(qIdx, 'question_text', e.target.value)} className="w-full p-2 mb-2 border-b outline-none dark:bg-gray-800 dark:text-white" />
+          
+          <input type="text" placeholder="โจทย์ข้อสอบ..." value={q.question_text} onChange={(e) => updateQuestion(qIdx, 'question_text', e.target.value)} className="w-full p-2 mb-2 border-b outline-none dark:bg-gray-800 dark:text-white" />
+          
+          {/* เพิ่ม UI ให้แนบภาพหรือวิดีโอ (Bug Fix 2) */}
+          <div className="mt-2 mb-4 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-2">แนบรูปภาพหรือวิดีโอประกอบโจทย์ (ถ้ามี)</label>
+            <input type="file" accept="image/*,video/*" onChange={(e) => handleUploadQuestionMedia(e, qIdx)} className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer w-full" />
+            {q.image_url && (
+              <div className="mt-3">
+                {q.image_url.match(/\.(mp4|webm|mov)$/i) ? (
+                  <video src={q.image_url} controls className="max-w-xs rounded-lg shadow-sm" />
+                ) : (
+                  <img src={q.image_url} alt="Question Media" className="max-w-xs rounded-lg shadow-sm" />
+                )}
+                <button type="button" onClick={() => updateQuestion(qIdx, 'image_url', '')} className="text-xs text-red-500 font-bold mt-2 hover:underline">ลบไฟล์แนบ</button>
+              </div>
+            )}
+          </div>
+
           {q.question_type === 'multiple_choice' ? (
             <>
               {q.choices.map((c: any, cIdx: number) => (
@@ -297,7 +326,6 @@ export default function TutorDashboard() {
         )}
       </div>
 
-      {/* --- TAB 1: Manage Courses --- */}
       {activeTab === 'manage_courses' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700 h-fit">
@@ -338,7 +366,6 @@ export default function TutorDashboard() {
         </div>
       )}
 
-      {/* --- TAB 2: Manage Content --- */}
       {activeTab === 'content' && (
         <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
           <h2 className="text-xl font-bold mb-4 dark:text-white">เลือกคอร์สที่ต้องการจัดการเนื้อหา / โปรโมโค้ด</h2>
@@ -441,7 +468,6 @@ export default function TutorDashboard() {
                                 renderExamEditor()
                             )}
 
-                            {/* Progress Bar สำหรับตอนแก้ไขไฟล์ */}
                             {uploading && (
                                <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4 dark:bg-gray-700 overflow-hidden">
                                   <div className="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
@@ -476,14 +502,12 @@ export default function TutorDashboard() {
                             </select>
                         </div>
                         
-                        {/* Rendering File Input OR Exam Editor */}
                         {itemForm.item_type !== 'exam' ? (
                             <input type="file" onChange={(e) => setSelectedFile(e.target.files ? e.target.files[0] : null)} className={fileInputClass} />
                         ) : (
                             renderExamEditor()
                         )}
 
-                        {/* Progress Bar สำหรับตอนสร้างไฟล์ใหม่ */}
                         {uploading && (
                            <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4 dark:bg-gray-700 overflow-hidden">
                               <div className="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
@@ -551,7 +575,7 @@ export default function TutorDashboard() {
       {/* --- TAB 4: Admin Global Promos --- */}
       {activeTab === 'global_promos' && role === 'admin' && (
         <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
-          <h2 className="text-xl font-bold mb-4 dark:text-white text-purple-600">สร้างโค้ดส่วนลดกลาง (ใช้ได้ทุกคอร์ส หรือเลือกคอร์สได้)</h2>
+          <h2 className="text-xl font-bold mb-4 dark:text-white text-purple-600">สร้างโค้ดส่วนลดกลาง (ใช้ได้ทุกคอร์ส รวมถึงแพ็กเกจ)</h2>
           <form onSubmit={handleSaveGlobalPromo} className="flex flex-col sm:flex-row gap-4 items-end mb-8 border p-5 rounded-xl border-purple-200 bg-purple-50 dark:bg-purple-900/20">
             <div className="flex-1">
               <label className="block text-xs font-bold text-blue-700 dark:text-blue-400 mb-1">รหัสโค้ด</label>
@@ -566,9 +590,9 @@ export default function TutorDashboard() {
               <input type="number" placeholder="0 = ไม่อั้น" required min="0" className="w-full p-2.5 border rounded-lg dark:bg-gray-900 dark:text-white outline-none" value={globalPromoForm.max_uses} onChange={e=>setGlobalPromoForm({...globalPromoForm, max_uses: Number(e.target.value)})} />
             </div>
             <div className="flex-1">
-              <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">กำหนดคอร์ส (เว้นว่าง = ใช้ได้ทุกคอร์ส)</label>
+              <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">กำหนดคอร์ส (เว้นว่าง = Global ใช้ได้รวมถึงแพ็กเกจ)</label>
               <select className="w-full p-2.5 border rounded-lg dark:bg-gray-900 dark:text-white outline-none" value={globalPromoForm.course_id} onChange={e=>setGlobalPromoForm({...globalPromoForm, course_id: e.target.value})}>
-                <option value="">[ใช้ได้กับทุกคอร์ส]</option>
+                <option value="">[Global - ใช้ได้กับทุกอย่าง]</option>
                 {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
               </select>
             </div>
@@ -581,7 +605,7 @@ export default function TutorDashboard() {
               <div key={gp.id} className="p-4 bg-gray-50 dark:bg-gray-900 border dark:border-gray-700 rounded-xl flex justify-between items-center">
                 <div>
                   <h4 className="font-black text-purple-600 text-lg">{gp.code} <span className="text-sm bg-red-100 text-red-600 px-2 py-0.5 rounded font-bold ml-2">- ฿{gp.discount_amount}</span></h4>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">เงื่อนไข: {gp.course_id ? `เฉพาะคอร์ส ID: ${gp.course_id}` : 'ใช้ได้ทุกคอร์ส (Global)'}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">เงื่อนไข: {gp.course_id ? `เฉพาะคอร์ส ID: ${gp.course_id}` : 'ใช้ได้ทุกอย่าง (Global)'}</p>
                   <p className="text-xs font-bold text-gray-400 mt-1">ถูกใช้: {gp.uses?.length || 0} / {gp.max_uses > 0 ? gp.max_uses : 'ไม่จำกัด'}</p>
                 </div>
                 <button onClick={() => {if(window.confirm('ลบ?')) tutorApi.deletePromoCode(gp.id).then(fetchGlobalPromos)}} className="bg-red-100 text-red-700 px-4 py-2 rounded-lg font-bold hover:bg-red-200 transition">ลบ</button>

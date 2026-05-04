@@ -79,7 +79,6 @@ func (h *Handler) UsersMePut(w http.ResponseWriter, r *http.Request) {
 	if status, ok := body["status"].(string); ok && status == "deleted" {
 		h.clearAuthCookie(w)
 	}
-
 	WriteJSON(w, http.StatusOK, updated)
 }
 
@@ -115,7 +114,6 @@ func (h *Handler) UsersMeAvatar(w http.ResponseWriter, r *http.Request) {
 		h.writeError(w, http.StatusBadRequest, "Read failed")
 		return
 	}
-
 	if int64(len(b)) > 4*1024*1024 {
 		h.writeError(w, http.StatusBadRequest, "File too large")
 		return
@@ -189,6 +187,37 @@ func (h *Handler) GetUserWallet(w http.ResponseWriter, r *http.Request) {
 		"user_id": uidStr,
 		"balance": balance,
 	})
+}
+
+// API จำลองการเติมเงิน
+func (h *Handler) TopupUserWallet(w http.ResponseWriter, r *http.Request) {
+	u := GetUser(r)
+	if u == nil {
+		h.writeError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+	uidStr := GetUserIDStr(u)
+
+	var req struct {
+		Amount float64 `json:"amount"`
+	}
+	if err := ReadJSON(r, &req); err != nil {
+		h.writeError(w, http.StatusBadRequest, "Invalid request")
+		return
+	}
+
+	_, err := h.TeachDB.Exec(`
+		INSERT INTO user_wallets (user_id, balance) 
+		VALUES ($1, $2) 
+		ON CONFLICT (user_id) DO UPDATE SET balance = user_wallets.balance + EXCLUDED.balance
+	`, uidStr, req.Amount)
+
+	if err != nil {
+		h.writeError(w, http.StatusInternalServerError, "Failed to topup")
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, map[string]string{"message": "Topup successful"})
 }
 
 func (h *Handler) GetUserAddresses(w http.ResponseWriter, r *http.Request) {

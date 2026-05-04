@@ -2,20 +2,20 @@ package httpapi
 
 import (
 	"github.com/go-chi/chi/v5"
-
 	"backend/internal/handlers"
 )
 
 func setupUserRoutes(h *handlers.Handler) func(chi.Router) {
 	return func(ur chi.Router) {
 		ur.Use(h.RequireAuth)
-
 		ur.Get("/me", h.UsersMeGet)
 		ur.Put("/me", h.UsersMePut)
 		ur.Post("/me/avatar", h.UsersMeAvatar)
 		ur.Delete("/me", h.UsersMeDelete)
 
 		ur.Get("/me/wallet", h.GetUserWallet)
+		ur.Post("/me/wallet/topup", h.TopupUserWallet) // เพิ่ม Route เติมเงิน
+
 		ur.Get("/addresses", h.GetUserAddresses)
 		ur.Post("/addresses", h.AddUserAddress)
 	}
