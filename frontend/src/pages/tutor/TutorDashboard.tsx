@@ -5,6 +5,7 @@ import ManageCoursesTab from './tabs/ManageCoursesTab';
 import ManagePackagesTab from './tabs/ManagePackagesTab';
 import GlobalPromosTab from './tabs/GlobalPromosTab';
 import ManageContentTab from './tabs/ManageContentTab';
+import AnalyticsTab from './tabs/AnalyticsTab';
 
 export default function TutorDashboard() {
   const { role } = useSelector((state: any) => state.auth);
@@ -349,6 +350,8 @@ export default function TutorDashboard() {
         <button onClick={()=>setActiveTab('manage_courses')} className={`py-3 px-6 font-bold whitespace-nowrap ${activeTab==='manage_courses' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`}>จัดการคอร์สเรียน</button>
         <button onClick={()=>setActiveTab('content')} className={`py-3 px-6 font-bold whitespace-nowrap ${activeTab==='content' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`}>จัดการเนื้อหา & โปรโมโค้ด</button>
         <button onClick={()=>setActiveTab('packages')} className={`py-3 px-6 font-bold whitespace-nowrap ${activeTab==='packages' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`}>จัดแพ็กเกจรวมคอร์ส</button>
+        <button onClick={()=>setActiveTab('analytics')} className={`py-3 px-6 font-bold whitespace-nowrap ${activeTab==='analytics' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`}>📊 สถิติและข้อมูลหลังบ้าน</button>
+
         {role === 'admin' && (
           <button onClick={()=>setActiveTab('global_promos')} className={`py-3 px-6 font-bold whitespace-nowrap ${activeTab==='global_promos' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`}>โค้ดส่วนลดกลาง (Admin)</button>
         )}
@@ -388,6 +391,7 @@ export default function TutorDashboard() {
           editingGlobalPromoId={editingGlobalPromoId} setEditingGlobalPromoId={setEditingGlobalPromoId}
         />
       )}
+      {activeTab === 'analytics' && <AnalyticsTab />}
     </div>
   );
 }

@@ -53,6 +53,9 @@ func setupLMSRoutes(h *handlers.Handler) func(chi.Router) {
 				r.Delete("/tutor/items/{itemId}", h.TutorDeletePlaylistItem)
 
 				r.Post("/tutor/upload", h.UploadFile)
+
+				// Analytics / Statistics (เพิ่มตรงนี้)
+				r.Get("/tutor/analytics", h.TutorGetAnalytics)
 			})
 		})
 	}
