@@ -251,6 +251,38 @@ export default function TutorDashboard() {
     setExamQuestions(newQs);
   };
 
+  // Reusable CSS Class สำหรับ File Input ให้สวยงามและชัดเจน
+  const fileInputClass = "mb-4 block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-700 transition-all";
+
+  // Reusable JSX สำหรับการสร้างและแก้ไขข้อสอบ
+  const renderExamEditor = () => (
+    <div className="mb-4 p-4 border border-blue-200 bg-blue-50/50 dark:bg-blue-900/10 rounded-xl space-y-4">
+      {examQuestions.map((q, qIdx) => (
+        <div key={qIdx} className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700">
+          <select value={q.question_type || 'multiple_choice'} onChange={(e) => updateQuestion(qIdx, 'question_type', e.target.value)} className="p-2 mb-2 border rounded-md dark:bg-gray-900 dark:text-white outline-none font-bold">
+            <option value="multiple_choice">ปรนัย (ตัวเลือก)</option>
+            <option value="short_answer">อัตนัย / คำถามปลายเปิด</option>
+          </select>
+          <input type="text" placeholder="โจทย์" value={q.question_text} onChange={(e) => updateQuestion(qIdx, 'question_text', e.target.value)} className="w-full p-2 mb-2 border-b outline-none dark:bg-gray-800 dark:text-white" />
+          {q.question_type === 'multiple_choice' ? (
+            <>
+              {q.choices.map((c: any, cIdx: number) => (
+                <div key={cIdx} className="flex gap-2 mb-2">
+                  <input type="radio" checked={c.is_correct} onChange={() => { const newQs = [...examQuestions]; newQs[qIdx].choices.forEach((ch, idx) => ch.is_correct = (idx === cIdx)); setExamQuestions(newQs); }} />
+                  <input type="text" value={c.choice_text} onChange={(e) => { const newQs = [...examQuestions]; newQs[qIdx].choices[cIdx].choice_text = e.target.value; setExamQuestions(newQs); }} className="border rounded px-2 py-1.5 w-full dark:bg-gray-900 dark:text-white outline-none focus:ring-1 focus:ring-blue-500" />
+                </div>
+              ))}
+              <button type="button" onClick={() => { const newQs = [...examQuestions]; newQs[qIdx].choices.push({ choice_text: '', is_correct: false }); setExamQuestions(newQs); }} className="text-xs text-blue-600 mt-2 font-bold">+ เพิ่มตัวเลือก</button>
+            </>
+          ) : (
+            <input type="text" placeholder="คำตอบที่ถูกต้อง (เว้นว่างไว้เพื่อซ่อนช่องตอบ)" value={q.correct_answer || ''} onChange={(e) => updateQuestion(qIdx, 'correct_answer', e.target.value)} className="w-full p-2 text-sm border rounded-md dark:bg-gray-900 dark:text-white outline-none focus:ring-1 focus:ring-blue-500" />
+          )}
+        </div>
+      ))}
+      <button type="button" onClick={() => setExamQuestions([...examQuestions, { question_text: '', image_url: '', question_type: 'multiple_choice', correct_answer: '', choices: [{ choice_text: '', is_correct: true }] }])} className="w-full py-2 border-dashed border-2 border-blue-300 text-blue-600 font-bold rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition">+ เพิ่มข้อสอบ</button>
+    </div>
+  );
+
   return (
     <div className="max-w-7xl mx-auto p-6 mt-8">
       <h1 className="text-3xl font-black mb-6 dark:text-white">Workspace: จัดการระบบการเรียนการสอน</h1>
@@ -368,7 +400,7 @@ export default function TutorDashboard() {
                 </div>
               </div>
 
-              {/* Playlists & Items Render (รวบรัดไว้) */}
+              {/* Playlists & Items Render */}
               <div className="p-4 border-2 border-dashed border-purple-200 dark:border-purple-900/50 rounded-xl">
                 <h4 className="text-sm font-bold text-purple-600 dark:text-purple-400 mb-3">{editingPlaylistId ? 'แก้ไขบทเรียน' : 'สร้างบทเรียนใหม่'}</h4>
                 <form onSubmit={handleSavePlaylist} className="flex flex-col sm:flex-row gap-4">
@@ -394,7 +426,6 @@ export default function TutorDashboard() {
                     <div key={it.id} className="mb-2">
                       {editingItemId === it.id ? (
                         <div className="p-4 bg-white dark:bg-gray-800 border-2 border-blue-400 rounded-xl my-2">
-                            {/* ฟอร์มแก้เนื้อหาเหมือนเดิม... */}
                             <div className="flex gap-3 mb-4">
                                 <input type="number" placeholder="ลำดับ" required className="w-20 p-2 border rounded-lg dark:bg-gray-900 dark:text-white outline-none" value={itemForm.sort_order} onChange={e=>setItemForm({...itemForm, sort_order: Number(e.target.value)})} />
                                 <input type="text" placeholder="ชื่อคลิป/ไฟล์" required className="flex-1 p-2 border rounded-lg dark:bg-gray-900 dark:text-white outline-none" value={itemForm.title} onChange={e=>setItemForm({...itemForm, title: e.target.value})} />
@@ -402,14 +433,24 @@ export default function TutorDashboard() {
                                   <option value="video">วิดีโอ</option><option value="file">เอกสาร</option><option value="exam">แบบทดสอบ</option>
                                 </select>
                             </div>
+                            
+                            {/* Rendering File Input OR Exam Editor */}
                             {itemForm.item_type !== 'exam' ? (
-                                <input type="file" onChange={(e) => setSelectedFile(e.target.files ? e.target.files[0] : null)} className="mb-4 block w-full text-sm" />
+                                <input type="file" onChange={(e) => setSelectedFile(e.target.files ? e.target.files[0] : null)} className={fileInputClass} />
                             ) : (
-                                <p className="mb-4 text-sm text-blue-600">กำลังแก้ไขแบบทดสอบ กรุณาอัปเดตฟอร์มแบบเต็มด้านล่างสุด</p>
+                                renderExamEditor()
                             )}
+
+                            {/* Progress Bar สำหรับตอนแก้ไขไฟล์ */}
+                            {uploading && (
+                               <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4 dark:bg-gray-700 overflow-hidden">
+                                  <div className="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
+                               </div>
+                            )}
+
                             <div className="flex gap-2">
-                                <button onClick={(e) => handleSaveItem(e, pl.id)} className="bg-blue-600 text-white px-4 py-2 rounded font-bold">บันทึก</button>
-                                <button onClick={() => setEditingItemId(null)} className="bg-gray-200 px-4 py-2 rounded font-bold">ยกเลิก</button>
+                                <button onClick={(e) => handleSaveItem(e, pl.id)} disabled={uploading} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold">{uploading ? 'กำลังบันทึก...' : 'บันทึก'}</button>
+                                <button onClick={() => setEditingItemId(null)} disabled={uploading} className="bg-gray-200 hover:bg-gray-300 px-6 py-2 rounded-lg font-bold">ยกเลิก</button>
                             </div>
                         </div>
                       ) : (
@@ -424,45 +465,32 @@ export default function TutorDashboard() {
                     </div>
                   ))}
                   
-                  {/* ปุ่มเพิ่ม Item ใหม่ (รวบรัดไว้เพราะ UI เหมือนเดิม) */}
+                  {/* ฟอร์มเพิ่มเนื้อหาใหม่ (New Item) */}
                   {!editingItemId && (
                     <div className="mt-4 pt-4 border-t dark:border-gray-700">
                         <div className="flex gap-3 mb-4">
                             <input type="number" placeholder="ลำดับ" required className="w-20 p-2 border rounded-lg dark:bg-gray-800 dark:text-white outline-none" value={itemForm.sort_order} onChange={e=>setItemForm({...itemForm, sort_order: Number(e.target.value)})} />
                             <input type="text" placeholder="ชื่อเนื้อหาใหม่" required className="flex-1 p-2 border rounded-lg dark:bg-gray-800 dark:text-white outline-none" value={itemForm.title} onChange={e=>setItemForm({...itemForm, title: e.target.value})} />
                             <select className="p-2 border rounded-lg dark:bg-gray-800 dark:text-white outline-none" value={itemForm.item_type} onChange={e=>setItemForm({...itemForm, item_type: e.target.value})}>
-                            <option value="video">วิดีโอ</option><option value="file">เอกสาร</option><option value="exam">แบบทดสอบ</option>
+                              <option value="video">วิดีโอ</option><option value="file">เอกสาร</option><option value="exam">แบบทดสอบ</option>
                             </select>
                         </div>
-                        {itemForm.item_type !== 'exam' && <input type="file" onChange={(e) => setSelectedFile(e.target.files ? e.target.files[0] : null)} className="mb-4 block w-full text-sm" />}
-                        {itemForm.item_type === 'exam' && (
-                            <div className="mb-4 p-4 border border-blue-200 bg-blue-50/50 dark:bg-blue-900/10 rounded-xl space-y-4">
-                                {examQuestions.map((q, qIdx) => (
-                                    <div key={qIdx} className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700">
-                                      <select value={q.question_type || 'multiple_choice'} onChange={(e) => updateQuestion(qIdx, 'question_type', e.target.value)} className="p-2 mb-2 border rounded-md dark:bg-gray-900 dark:text-white outline-none font-bold">
-                                        <option value="multiple_choice">ปรนัย (ตัวเลือก)</option>
-                                        <option value="short_answer">อัตนัย / คำถามปลายเปิด</option>
-                                      </select>
-                                      <input type="text" placeholder="โจทย์" value={q.question_text} onChange={(e) => updateQuestion(qIdx, 'question_text', e.target.value)} className="w-full p-2 mb-2 border-b outline-none dark:bg-gray-800 dark:text-white" />
-                                      {q.question_type === 'multiple_choice' ? (
-                                        <>
-                                            {q.choices.map((c: any, cIdx: number) => (
-                                                <div key={cIdx} className="flex gap-2">
-                                                    <input type="radio" checked={c.is_correct} onChange={() => { const newQs = [...examQuestions]; newQs[qIdx].choices.forEach((c, idx) => c.is_correct = (idx === cIdx)); setExamQuestions(newQs); }} />
-                                                    <input type="text" value={c.choice_text} onChange={(e) => { const newQs = [...examQuestions]; newQs[qIdx].choices[cIdx].choice_text = e.target.value; setExamQuestions(newQs); }} className="border rounded px-2 w-full dark:bg-gray-900 dark:text-white" />
-                                                </div>
-                                            ))}
-                                            <button type="button" onClick={() => { const newQs = [...examQuestions]; newQs[qIdx].choices.push({ choice_text: '', is_correct: false }); setExamQuestions(newQs); }} className="text-xs text-blue-600 mt-2">+ เพิ่มตัวเลือก</button>
-                                        </>
-                                      ) : (
-                                        <input type="text" placeholder="คำตอบที่ถูกต้อง (เว้นว่างไว้เพื่อซ่อนช่องตอบ)" value={q.correct_answer || ''} onChange={(e) => updateQuestion(qIdx, 'correct_answer', e.target.value)} className="w-full p-2 text-sm border rounded-md dark:bg-gray-900 dark:text-white" />
-                                      )}
-                                    </div>
-                                ))}
-                                <button type="button" onClick={() => setExamQuestions([...examQuestions, { question_text: '', image_url: '', question_type: 'multiple_choice', correct_answer: '', choices: [{ choice_text: '', is_correct: true }] }])} className="w-full py-2 border-dashed border-2 text-gray-500 font-bold rounded-lg">+ เพิ่มข้อสอบ</button>
-                            </div>
+                        
+                        {/* Rendering File Input OR Exam Editor */}
+                        {itemForm.item_type !== 'exam' ? (
+                            <input type="file" onChange={(e) => setSelectedFile(e.target.files ? e.target.files[0] : null)} className={fileInputClass} />
+                        ) : (
+                            renderExamEditor()
                         )}
-                        <button onClick={(e) => handleSaveItem(e, pl.id)} disabled={uploading || !itemForm.title} className="w-full bg-blue-600 text-white py-2 font-bold rounded-lg">เพิ่มเนื้อหา</button>
+
+                        {/* Progress Bar สำหรับตอนสร้างไฟล์ใหม่ */}
+                        {uploading && (
+                           <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4 dark:bg-gray-700 overflow-hidden">
+                              <div className="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
+                           </div>
+                        )}
+
+                        <button onClick={(e) => handleSaveItem(e, pl.id)} disabled={uploading || !itemForm.title} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 font-bold rounded-lg transition-colors">{uploading ? 'กำลังบันทึก...' : 'เพิ่มเนื้อหา'}</button>
                     </div>
                   )}
                 </div>

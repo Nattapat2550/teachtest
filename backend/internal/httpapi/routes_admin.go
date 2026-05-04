@@ -2,7 +2,6 @@ package httpapi
 
 import (
 	"github.com/go-chi/chi/v5"
-
 	"backend/internal/handlers"
 )
 
@@ -34,5 +33,9 @@ func setupAdminRoutes(h *handlers.Handler) func(chi.Router) {
 		r.Post("/carousel", h.AdminCreateCarousel)
 		r.Put("/carousel/{id}", h.AdminUpdateCarousel)
 		r.Delete("/carousel/{id}", h.AdminDeleteCarousel)
+
+		// --- Global Promos ---
+		r.Get("/promos", h.AdminGetGlobalPromos)
+		r.Post("/promos", h.AdminCreateGlobalPromo)
 	}
 }
