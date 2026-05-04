@@ -8,7 +8,9 @@ import 'react-quill-new/dist/quill.snow.css';
 // Authen & Common
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage'));
+const CheckCodePage = lazy(() => import('./pages/CheckCodePage')); // เพิ่มหน้านี้
 const CompleteProfilePage = lazy(() => import('./pages/CompleteProfilePage'));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage')); // เพิ่มหน้านี้
 const HomePage = lazy(() => import('./pages/HomePage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 
@@ -23,7 +25,7 @@ const AdminPage = lazy(() => import('./pages/admin/AdminPage'));
 // LMS Components
 const CourseCatalog = lazy(() => import('./pages/student/CourseCatalog'));
 const CourseDetail = lazy(() => import('./pages/student/CourseDetail'));
-const PackageDetail = lazy(() => import('./pages/student/PackageDetail')); // คอมโพเนนต์ใหม่
+const PackageDetail = lazy(() => import('./pages/student/PackageDetail'));
 const MyLearning = lazy(() => import('./pages/student/MyLearning'));
 const LearningRoom = lazy(() => import('./pages/student/LearningRoom'));
 const TutorDashboard = lazy(() => import('./pages/tutor/TutorDashboard'));
@@ -36,6 +38,11 @@ const App: React.FC = () => {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          
+          {/* เพิ่ม 2 เส้นทางนี้เพื่อให้กรอก OTP และรีเซ็ตรหัสผ่านได้ */}
+          <Route path="/check" element={<CheckCodePage />} />
+          <Route path="/reset" element={<ResetPasswordPage />} />
+          
           <Route path="/complete-profile" element={<CompleteProfilePage />} />
           
           <Route path="/about" element={<AboutPage />} />
