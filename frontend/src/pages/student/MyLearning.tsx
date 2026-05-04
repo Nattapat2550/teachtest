@@ -27,7 +27,7 @@ export default function MyLearning() {
   if (loading) return <div className="text-center mt-20 dark:text-white">กำลังโหลด...</div>;
 
   return (
-    <div className="max-w-6xl mx-auto p-6 mt-8 min-h-screen">
+    <div className="max-w-360 w-full mx-auto p-6 lg:p-8 mt-8 min-h-screen">
       <h1 className="text-3xl font-black mb-8 dark:text-white">คอร์สเรียนของฉัน</h1>
       {learnings.length === 0 ? (
         <p className="text-gray-500 bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-sm">คุณยังไม่มีคอร์สเรียน</p>

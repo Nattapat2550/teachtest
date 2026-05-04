@@ -370,7 +370,9 @@ export default function TutorDashboard() {
           courses={courses} selectedCourse={selectedCourse} setSelectedCourse={setSelectedCourse}
           editingPromoId={editingPromoId} setEditingPromoId={setEditingPromoId} promoForm={promoForm} setPromoForm={setPromoForm} promoCodes={promoCodes} handleSavePromo={handleSavePromo} handleDeletePromo={handleDeletePromo}
           editingPlaylistId={editingPlaylistId} setEditingPlaylistId={setEditingPlaylistId} playlistForm={playlistForm} setPlaylistForm={setPlaylistForm} handleSavePlaylist={handleSavePlaylist} handleDeletePlaylist={handleDeletePlaylist}
-          editingItemId={editingItemId} setEditingItemId={setEditingItemId} itemForm={itemForm} setItemForm={setItemForm} setSelectedFile={setSelectedFile} uploading={uploading} uploadProgress={uploadProgress} handleSaveItem={handleSaveItem} handleEditItem={handleEditItem} handleDeleteItem={handleDeleteItem} renderExamEditor={renderExamEditor} fileInputClass={fileInputClass}
+          editingItemId={editingItemId} setEditingItemId={setEditingItemId} itemForm={itemForm} setItemForm={setItemForm} setSelectedFile={setSelectedFile} uploading={uploading} uploadProgress={uploadProgress} handleSaveItem={handleSaveItem} handleEditItem={handleEditItem} handleDeleteItem={handleDeleteItem} 
+          fileInputClass={fileInputClass}
+          examQuestions={examQuestions} setExamQuestions={setExamQuestions}
         />
       )}
 

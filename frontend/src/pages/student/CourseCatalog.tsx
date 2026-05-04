@@ -54,7 +54,7 @@ export default function CourseCatalog() {
   if (loading) return <div className="text-center mt-20 dark:text-white">กำลังโหลด...</div>;
 
   return (
-    <div className="max-w-6xl mx-auto p-6 mt-8">
+    <div className="max-w-360 w-full mx-auto p-6 lg:p-8 mt-8">
       
       {/* Wallet Status */}
       {isAuthenticated && (

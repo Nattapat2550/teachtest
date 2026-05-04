@@ -82,7 +82,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 mt-10 space-y-8 animate-fade-in pb-20">
+    <div className="max-w-6xl w-full mx-auto p-6 lg:p-10 mt-10 space-y-8 animate-fade-in pb-20">
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 lg:p-8">
         <h2 className="text-2xl font-bold border-b border-gray-200 dark:border-gray-700 pb-4 mb-6 text-gray-900 dark:text-white">การตั้งค่าบัญชี</h2>
         

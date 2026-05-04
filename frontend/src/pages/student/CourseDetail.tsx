@@ -54,7 +54,7 @@ export default function CourseDetail() {
   if (!course) return <div className="text-center mt-20 dark:text-white">ไม่พบคอร์สเรียน</div>;
 
   return (
-    <div className="max-w-4xl mx-auto p-6 mt-8">
+    <div className="max-w-7xl w-full mx-auto p-6 lg:p-10 mt-8">
       <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-md border dark:border-gray-700 flex flex-col md:flex-row gap-8">
         <div className="flex-1">
           <h1 className="text-3xl font-black text-gray-900 dark:text-white mb-4">{course.title}</h1>

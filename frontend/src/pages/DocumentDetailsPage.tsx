@@ -58,7 +58,7 @@ export default function DocumentDetailsPage() {
 
   return (
     <div className="w-full min-h-screen bg-gray-50 dark:bg-gray-900 pb-20 pt-24 px-6 md:px-12 transition-colors duration-300">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-7xl w-full mx-auto">
         
         <Link to="/" className="inline-flex items-center text-blue-600 dark:text-blue-400 font-bold hover:underline mb-8 bg-white dark:bg-gray-800 px-5 py-2.5 rounded-full border border-gray-200 dark:border-gray-700 shadow-sm transition-colors">
           &larr; กลับหน้าหลัก
