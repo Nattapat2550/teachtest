@@ -1,4 +1,3 @@
-// backend/internal/handlers/auth.go
 package handlers
 
 import (
@@ -30,7 +29,6 @@ type otpEntry struct {
 }
 
 // --------------------------------------------------------------------------
-
 type userDTO struct {
 	ID                int64   `json:"id"`
 	UserID            *string `json:"user_id"`
@@ -52,10 +50,12 @@ type userDTO struct {
 type registerReq struct {
 	Email string `json:"email"`
 }
+
 type verifyReq struct {
 	Email string `json:"email"`
 	Code  string `json:"code"`
 }
+
 type completeProfileReq struct {
 	Email      string `json:"email"`
 	Username   string `json:"username"`
@@ -67,47 +67,38 @@ type completeProfileReq struct {
 	OAuthId    string `json:"oauthId"`
 	PictureUrl string `json:"pictureUrl"`
 }
+
 type loginReq struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 	Remember bool   `json:"remember"`
 }
+
 type forgotReq struct {
 	Email string `json:"email"`
 }
+
 type resetReq struct {
 	Token       string `json:"token"`
 	NewPassword string `json:"newPassword"`
 }
-type verifyResp struct {
-	OK     bool    `json:"ok"`
-	UserID *int64  `json:"userId"`
-	Reason *string `json:"reason"`
-}
 
-// 🌟 ฟังก์ชันจัดการ Role (ยึดตามฐานข้อมูลระบบ TeachDB เป็นหลัก)
+// Role Sync
 func (h *Handler) syncUserRole(ctx context.Context, userID string, pureRole string) string {
 	var dbRole string
 	err := h.TeachDB.QueryRowContext(ctx, "SELECT role FROM user_roles WHERE user_id = $1", userID).Scan(&dbRole)
-
 	if err == nil && dbRole != "" {
-		// ถ้าใน DB มีการตั้งสิทธิ์ (tutor/admin/student) ไว้แล้ว ให้ยึดสิทธิ์นั้น
 		return dbRole
 	}
-
-	// ถ้าเพิ่งสร้างบัญชีใหม่ ให้เป็น student ยกเว้นว่า PureAPI บังคับมาเป็น admin
 	newRole := "student"
 	if pureRole == "admin" {
 		newRole = "admin"
 	}
-
-	// บันทึก Role ลง DB เพื่อให้ครั้งต่อไปดึงมาใช้ได้เลย
 	_, _ = h.TeachDB.ExecContext(ctx, `
 		INSERT INTO user_roles (user_id, role) 
 		VALUES ($1, $2) 
 		ON CONFLICT (user_id) DO NOTHING
 	`, userID, newRole)
-
 	return newRole
 }
 
@@ -119,9 +110,10 @@ func (h *Handler) AuthRegister(w http.ResponseWriter, r *http.Request) {
 		h.writeError(w, http.StatusBadRequest, "Invalid JSON")
 		return
 	}
+
 	email := strings.TrimSpace(strings.ToLower(req.Email))
 	if email == "" || !emailRe.MatchString(email) {
-		h.writeError(w, http.StatusBadRequest, "Invalid email")
+		h.writeError(w, http.StatusBadRequest, "รูปแบบอีเมลไม่ถูกต้อง")
 		return
 	}
 
@@ -129,7 +121,7 @@ func (h *Handler) AuthRegister(w http.ResponseWriter, r *http.Request) {
 	err := h.Pure.Post(ctx, "/api/internal/find-user", map[string]any{"email": email}, &existingUser)
 	if err == nil && existingUser.ID != 0 {
 		if existingUser.Username != nil || existingUser.PasswordHash != nil {
-			h.writeError(w, http.StatusConflict, "Email already registered")
+			h.writeError(w, http.StatusConflict, "อีเมลนี้ได้รับการลงทะเบียนแล้ว")
 			return
 		}
 	}
@@ -146,8 +138,8 @@ func (h *Handler) AuthRegister(w http.ResponseWriter, r *http.Request) {
 
 	emailSent := false
 	if !h.Cfg.EmailDisable {
-		subject := "Your verification code"
-		text := "Your verification code is: " + code + "\n\nThis code will expire in 10 minutes."
+		subject := "รหัสยืนยันการสมัครสมาชิก TeachTest"
+		text := "รหัสยืนยันของคุณคือ: " + code + "\n\nรหัสนี้จะหมดอายุภายใน 10 นาที"
 		if err := h.Mail.Send(ctx, MailMessage{
 			To:      email,
 			Subject: subject,
@@ -155,7 +147,14 @@ func (h *Handler) AuthRegister(w http.ResponseWriter, r *http.Request) {
 			HTML:    "",
 		}); err == nil {
 			emailSent = true
+		} else {
+			fmt.Println("Mailer Error:", err)
 		}
+	} else {
+		// สำคัญ: ปริ้นท์ OTP ออกมาทาง Terminal เพื่อให้เทสได้ตอนยังไม่ได้เปิดระบบเมล
+		fmt.Printf("\n=========================================\n")
+		fmt.Printf("[DEV MODE] Verification Code for %s is: %s\n", email, code)
+		fmt.Printf("=========================================\n\n")
 	}
 
 	WriteJSON(w, http.StatusOK, map[string]any{"ok": true, "emailSent": emailSent})
@@ -168,11 +167,12 @@ func (h *Handler) AuthVerifyCode(w http.ResponseWriter, r *http.Request) {
 		h.writeError(w, http.StatusBadRequest, "Invalid JSON")
 		return
 	}
+
 	email := strings.TrimSpace(strings.ToLower(req.Email))
 	code := strings.TrimSpace(req.Code)
 
 	if email == "" || code == "" {
-		h.writeError(w, http.StatusBadRequest, "Missing fields")
+		h.writeError(w, http.StatusBadRequest, "กรุณากรอกข้อมูลให้ครบถ้วน")
 		return
 	}
 
@@ -181,7 +181,7 @@ func (h *Handler) AuthVerifyCode(w http.ResponseWriter, r *http.Request) {
 	otpStoreMutex.RUnlock()
 
 	if !exists || entry.Code != code || time.Now().After(entry.ExpiresAt) {
-		h.writeError(w, http.StatusBadRequest, "Invalid or expired code")
+		h.writeError(w, http.StatusBadRequest, "รหัสยืนยันไม่ถูกต้องหรือหมดอายุแล้ว")
 		return
 	}
 
@@ -261,7 +261,6 @@ func (h *Handler) AuthCompleteProfile(w http.ResponseWriter, r *http.Request) {
 		randomUserID = fmt.Sprintf("%v", user.ID)
 	}
 
-	// 🌟 ซิงค์ Role ใหม่
 	user.Role = h.syncUserRole(ctx, randomUserID, user.Role)
 
 	token, err := h.signToken(user.ID, randomUserID, user.Role)
@@ -298,6 +297,7 @@ func (h *Handler) AuthLogin(w http.ResponseWriter, r *http.Request) {
 		h.writeError(w, http.StatusBadRequest, "Invalid JSON")
 		return
 	}
+
 	email := strings.TrimSpace(strings.ToLower(req.Email))
 	if email == "" || req.Password == "" {
 		h.writeError(w, http.StatusBadRequest, "Missing fields")
@@ -306,7 +306,6 @@ func (h *Handler) AuthLogin(w http.ResponseWriter, r *http.Request) {
 
 	var user userDTO
 	if err := h.Pure.Post(ctx, "/api/internal/find-user", map[string]any{"email": email}, &user); err != nil {
-		fmt.Println("Login DB Error (find user):", err)
 		h.writeError(w, http.StatusUnauthorized, "Invalid credentials")
 		return
 	}
@@ -315,6 +314,7 @@ func (h *Handler) AuthLogin(w http.ResponseWriter, r *http.Request) {
 		h.writeError(w, http.StatusUnauthorized, "Invalid credentials")
 		return
 	}
+
 	if err := bcrypt.CompareHashAndPassword([]byte(*user.PasswordHash), []byte(req.Password)); err != nil {
 		h.writeError(w, http.StatusUnauthorized, "Invalid credentials")
 		return
@@ -324,6 +324,7 @@ func (h *Handler) AuthLogin(w http.ResponseWriter, r *http.Request) {
 	if user.Status != nil {
 		currentStatus = *user.Status
 	}
+
 	if currentStatus == "banned" {
 		h.writeError(w, http.StatusUnauthorized, "ACCOUNT_BANNED")
 		return
@@ -349,7 +350,6 @@ func (h *Handler) AuthLogin(w http.ResponseWriter, r *http.Request) {
 		randomUserID = fmt.Sprintf("%v", user.ID)
 	}
 
-	// 🌟 ซิงค์ Role ใหม่
 	user.Role = h.syncUserRole(ctx, randomUserID, user.Role)
 
 	token, err := h.signToken(user.ID, randomUserID, user.Role)
@@ -357,6 +357,7 @@ func (h *Handler) AuthLogin(w http.ResponseWriter, r *http.Request) {
 		h.writeError(w, http.StatusInternalServerError, "Token error")
 		return
 	}
+
 	h.setAuthCookie(w, token, req.Remember)
 
 	WriteJSON(w, http.StatusOK, map[string]any{
@@ -387,6 +388,7 @@ func (h *Handler) AuthStatus(w http.ResponseWriter, r *http.Request) {
 		WriteJSON(w, http.StatusOK, map[string]any{"authenticated": false})
 		return
 	}
+
 	claims, err := h.parseToken(tok)
 	if err != nil {
 		WriteJSON(w, http.StatusOK, map[string]any{"authenticated": false})
@@ -398,6 +400,7 @@ func (h *Handler) AuthStatus(w http.ResponseWriter, r *http.Request) {
 		WriteJSON(w, http.StatusOK, map[string]any{"authenticated": false})
 		return
 	}
+
 	if user.Status != nil && *user.Status == "banned" {
 		h.clearAuthCookie(w)
 		WriteJSON(w, http.StatusOK, map[string]any{"authenticated": false, "reason": "banned"})
@@ -410,8 +413,6 @@ func (h *Handler) AuthStatus(w http.ResponseWriter, r *http.Request) {
 	} else {
 		randomUserID = fmt.Sprintf("%v", user.ID)
 	}
-
-	// 🌟 ซิงค์ Role ใหม่
 	user.Role = h.syncUserRole(ctx, randomUserID, user.Role)
 
 	WriteJSON(w, http.StatusOK, map[string]any{
@@ -472,8 +473,8 @@ func (h *Handler) AuthForgotPassword(w http.ResponseWriter, r *http.Request) {
 	emailSent := false
 	if !h.Cfg.EmailDisable {
 		resetLink := strings.TrimRight(h.Cfg.FrontendURL, "/") + "/reset?token=" + token
-		subject := "Reset your password"
-		text := "Click this link to reset your password:\n" + resetLink + "\n\nThis link expires in 30 minutes."
+		subject := "รีเซ็ตรหัสผ่าน TeachTest"
+		text := "คลิกลิงก์นี้เพื่อตั้งรหัสผ่านใหม่:\n" + resetLink + "\n\nลิงก์จะหมดอายุภายใน 30 นาที"
 
 		if err := h.Mail.Send(ctx, MailMessage{
 			To:      user.Email,
@@ -483,6 +484,8 @@ func (h *Handler) AuthForgotPassword(w http.ResponseWriter, r *http.Request) {
 		}); err == nil {
 			emailSent = true
 		}
+	} else {
+		fmt.Printf("\n[DEV MODE] Reset Password Link for %s is: %s\n\n", email, strings.TrimRight(h.Cfg.FrontendURL, "/")+"/reset?token="+token)
 	}
 
 	WriteJSON(w, http.StatusOK, map[string]any{"ok": true, "emailSent": emailSent})
@@ -495,6 +498,7 @@ func (h *Handler) AuthResetPassword(w http.ResponseWriter, r *http.Request) {
 		h.writeError(w, http.StatusBadRequest, "Invalid JSON")
 		return
 	}
+
 	token := strings.TrimSpace(req.Token)
 	newPass := req.NewPassword
 
@@ -502,6 +506,7 @@ func (h *Handler) AuthResetPassword(w http.ResponseWriter, r *http.Request) {
 		h.writeError(w, http.StatusBadRequest, "Missing fields")
 		return
 	}
+
 	if len(newPass) < 8 {
 		h.writeError(w, http.StatusBadRequest, "Password too short")
 		return
