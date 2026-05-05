@@ -1,4 +1,3 @@
-// frontend/src/pages/admin/tabs/UsersTab.tsx
 import React, { useState, useEffect } from 'react';
 import api from '../../../services/api';
 
@@ -16,11 +15,9 @@ export default function UsersTab() {
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
-  // === Wallet Modal State ===
   const [walletModal, setWalletModal] = useState(false);
   const [newBalance, setNewBalance] = useState<number>(0);
 
-  // === Role Modal State ===
   const [roleModal, setRoleModal] = useState(false);
   const [newRole, setNewRole] = useState<string>('student');
 
@@ -41,7 +38,6 @@ export default function UsersTab() {
      fetchUsers();
    }, []);
 
-  // --- Handlers จัดการ Wallet ---
   const openWalletModal = (user: User) => {
     setSelectedUser(user);
     setNewBalance(user.balance || 0);
@@ -65,7 +61,6 @@ export default function UsersTab() {
     }
   };
 
-  // --- Handlers จัดการ Role ---
   const openRoleModal = (user: User) => {
     setSelectedUser(user);
     setNewRole(user.role || 'student');
@@ -155,28 +150,26 @@ export default function UsersTab() {
         </table>
       </div>
 
-      {/* ========================================== */}
-      {/* Modal จัดการยอดเงิน (Wallet) */}
-      {/* ========================================== */}
       {walletModal && selectedUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        // แก้ไข: bg-black/50 เป็น bg-gray-900/60
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4">
           <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-sm shadow-2xl p-6">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">ปรับปรุงยอดเงิน</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">ผู้ใช้: {selectedUser.email || selectedUser.username}</p>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">เพิ่ม/ลดยอดเงินกระเป๋า</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">บัญชี: {selectedUser.email || selectedUser.username}</p>
             
             <form onSubmit={handleUpdateWallet}>
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   ยอดเงินล่าสุด (บาท)
                 </label>
-                <input 
-                   type="number" 
-                   step="0.01"
-                  required 
-                   value={newBalance} 
-                   onChange={e => setNewBalance(parseFloat(e.target.value) || 0)} 
-                   className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white text-lg font-bold focus:ring-2 focus:ring-blue-500 outline-none" 
-                 />
+                <input
+                    type="number"
+                    step="0.01"
+                  required
+                    value={newBalance}
+                    onChange={e => setNewBalance(parseFloat(e.target.value) || 0)}
+                    className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white text-lg font-bold focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
               </div>
               
               <div className="flex justify-end gap-3">
@@ -184,7 +177,7 @@ export default function UsersTab() {
                   ยกเลิก
                 </button>
                 <button type="submit" className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-md transition-colors">
-                  บันทึกยอดเงิน
+                  ยืนยันบันทึก
                 </button>
               </div>
             </form>
@@ -192,27 +185,24 @@ export default function UsersTab() {
         </div>
       )}
 
-      {/* ========================================== */}
-      {/* Modal เปลี่ยนสิทธิ์ (Role) */}
-      {/* ========================================== */}
       {roleModal && selectedUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4">
           <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-sm shadow-2xl p-6">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">เปลี่ยนสิทธิ์ผู้ใช้</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">ผู้ใช้: {selectedUser.email || selectedUser.username}</p>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">จัดการสิทธิ์ผู้ใช้</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">บัญชี: {selectedUser.email || selectedUser.username}</p>
             
             <form onSubmit={handleUpdateRole}>
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    เลือกสิทธิ์ (Role)
+                  เลือกระดับสิทธิ์ (Role)
                 </label>
-                <select 
-                   value={newRole} 
-                   onChange={e => setNewRole(e.target.value)} 
-                   className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white text-base focus:ring-2 focus:ring-blue-500 outline-none"
+                <select
+                    value={newRole}
+                    onChange={e => setNewRole(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white text-base focus:ring-2 focus:ring-blue-500 outline-none"
                 >
                   <option value="student">Student (นักเรียน)</option>
-                  <option value="tutor">Tutor (ผู้สอน)</option>
+                  <option value="tutor">Tutor (ติวเตอร์ผู้สอน)</option>
                   <option value="admin">Admin (ผู้ดูแลระบบ)</option>
                 </select>
               </div>
@@ -222,7 +212,7 @@ export default function UsersTab() {
                   ยกเลิก
                 </button>
                 <button type="submit" className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-md transition-colors">
-                  บันทึกสิทธิ์
+                  ยืนยันอัปเดต
                 </button>
               </div>
             </form>

@@ -77,10 +77,10 @@ export default function CourseCatalog() {
       {/* Packages Section */}
       {packages.length > 0 && (
         <div className="mb-12">
-          <h1 className="text-3xl font-black mb-6 text-purple-600 dark:text-purple-400">🔥 แพ็กเกจสุดคุ้ม</h1>
+          {/* เอา text-purple-600 ออก เปลี่ยนเป็น text-gray-900 dark:text-white */}
+          <h1 className="text-3xl font-black mb-6 text-gray-900 dark:text-white">🔥 แพ็กเกจสุดคุ้ม</h1>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {packages.map((pkg) => {
-              // ตรวจสอบว่ามีคอร์สครบหมดแล้วหรือยังในแพ็กเกจนี้
               const isPackageOwned = pkg.course_ids && pkg.course_ids.length > 0 && pkg.course_ids.every((cid: string) => myCourses.includes(cid));
               
               return (
@@ -112,7 +112,7 @@ export default function CourseCatalog() {
       )}
 
       {/* Normal Courses Section */}
-      <h1 className="text-3xl font-black mb-8 dark:text-white">หลักสูตรทั้งหมด</h1>
+      <h1 className="text-3xl font-black mb-8 text-gray-900 dark:text-white">หลักสูตรทั้งหมด</h1>
       {courses.length === 0 ? (
         <p className="text-gray-500">ยังไม่มีหลักสูตรที่เปิดสอน</p>
       ) : (

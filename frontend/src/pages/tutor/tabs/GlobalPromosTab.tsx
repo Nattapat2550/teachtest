@@ -5,7 +5,8 @@ export default function GlobalPromosTab({
 }: any) {
   return (
     <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
-      <h2 className="text-xl font-bold mb-4 dark:text-white text-purple-600">
+      {/* แก้ไข text-purple-600 เป็น text-gray-900 */}
+      <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
         {editingGlobalPromoId ? 'แก้ไขโค้ดส่วนลดกลาง' : 'สร้างโค้ดส่วนลดกลาง (ใช้ได้ทุกคอร์ส รวมถึงแพ็กเกจ)'}
       </h2>
       <form onSubmit={handleSaveGlobalPromo} className="flex flex-col sm:flex-row gap-4 items-end mb-8 border p-5 rounded-xl border-purple-200 bg-purple-50 dark:bg-purple-900/20">

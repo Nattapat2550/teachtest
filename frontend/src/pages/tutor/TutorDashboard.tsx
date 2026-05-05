@@ -40,7 +40,6 @@ export default function TutorDashboard() {
     { question_text: '', image_url: '', question_type: 'multiple_choice', correct_answer: '', choices: [{ choice_text: '', is_correct: true }] }
   ]);
 
-  // 🌟 เพิ่มฟังก์ชันแปลง URL ไฟล์ให้ถูกต้องพร้อมแนบ Token แก้ปัญหา 404
   const getFullUrl = (url: string) => {
     if (!url) return '';
     if (url.startsWith('http')) return url;
@@ -270,76 +269,8 @@ export default function TutorDashboard() {
     finally { setUploading(false); setUploadProgress(0); }
   };
 
-  const updateQuestion = (index: number, key: string, value: string) => {
-    const newQs = [...examQuestions];
-    (newQs[index] as any)[key] = value;
-    setExamQuestions(newQs);
-  };
-
-  const handleUploadQuestionMedia = async (e: any, qIdx: number) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setUploading(true);
-    const fd = new FormData();
-    fd.append('file', file);
-    try {
-        const { data } = await api.post('/api/tutor/upload', fd);
-        updateQuestion(qIdx, 'image_url', data.url);
-    } catch (err) {
-        alert('อัปโหลดไฟล์ล้มเหลว');
-    } finally {
-        setUploading(false);
-    }
-  };
-
-  const fileInputClass = "mb-4 block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-700 transition-all";
-
-  const renderExamEditor = () => (
-    <div className="mb-4 p-4 border border-blue-200 bg-blue-50/50 dark:bg-blue-900/10 rounded-xl space-y-4">
-      {examQuestions.map((q, qIdx) => (
-        <div key={qIdx} className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700">
-          <select value={q.question_type || 'multiple_choice'} onChange={(e) => updateQuestion(qIdx, 'question_type', e.target.value)} className="p-2 mb-2 border rounded-md dark:bg-gray-900 dark:text-white outline-none font-bold">
-            <option value="multiple_choice">ปรนัย (ตัวเลือก)</option>
-            <option value="short_answer">อัตนัย / คำถามปลายเปิด</option>
-          </select>
-          
-          <input type="text" placeholder="โจทย์ข้อสอบ..." value={q.question_text} onChange={(e) => updateQuestion(qIdx, 'question_text', e.target.value)} className="w-full p-2 mb-2 border-b outline-none dark:bg-gray-800 dark:text-white" />
-          
-          <div className="mt-2 mb-4 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
-            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-2">แนบรูปภาพหรือวิดีโอประกอบโจทย์ (ถ้ามี)</label>
-            <input type="file" accept="image/*,video/*" onChange={(e) => handleUploadQuestionMedia(e, qIdx)} className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer w-full" />
-            
-            {/* 🌟 แสดงรูปภาพหรือวิดีโอ โดยใช้ getFullUrl เพื่อแนบ Token ป้องกัน 404 Not Found */}
-            {q.image_url && (
-              <div className="mt-3">
-                {q.image_url.match(/\.(mp4|webm|mov)$/i) ? (
-                  <video src={getFullUrl(q.image_url)} controls className="max-w-xs rounded-lg shadow-sm" />
-                ) : (
-                  <img src={getFullUrl(q.image_url)} alt="Question Media" className="max-w-xs rounded-lg shadow-sm" />
-                )}
-                <button type="button" onClick={() => updateQuestion(qIdx, 'image_url', '')} className="text-xs text-red-500 font-bold mt-2 hover:underline">ลบไฟล์แนบ</button>
-              </div>
-            )}
-          </div>
-
-          {q.question_type === 'multiple_choice' ? (
-            <>
-              {q.choices.map((c: any, cIdx: number) => (
-                <div key={cIdx} className="flex gap-2 mb-2">
-                  <input type="radio" checked={c.is_correct} onChange={() => { const newQs = [...examQuestions]; newQs[qIdx].choices.forEach((ch, idx) => ch.is_correct = (idx === cIdx)); setExamQuestions(newQs); }} />
-                  <input type="text" value={c.choice_text} onChange={(e) => { const newQs = [...examQuestions]; newQs[qIdx].choices[cIdx].choice_text = e.target.value; setExamQuestions(newQs); }} className="border rounded px-2 py-1.5 w-full dark:bg-gray-900 dark:text-white outline-none focus:ring-1 focus:ring-blue-500" />
-                </div>
-              ))}
-              <button type="button" onClick={() => { const newQs = [...examQuestions]; newQs[qIdx].choices.push({ choice_text: '', is_correct: false }); setExamQuestions(newQs); }} className="text-xs text-blue-600 mt-2 font-bold">+ เพิ่มตัวเลือก</button>
-            </>
-          ) : (
-            <input type="text" placeholder="คำตอบที่ถูกต้อง (เว้นว่างไว้เพื่อซ่อนช่องตอบ)" value={q.correct_answer || ''} onChange={(e) => updateQuestion(qIdx, 'correct_answer', e.target.value)} className="w-full p-2 text-sm border rounded-md dark:bg-gray-900 dark:text-white outline-none focus:ring-1 focus:ring-blue-500" />
-          )}
-        </div>
-      ))}
-      <button type="button" onClick={() => setExamQuestions([...examQuestions, { question_text: '', image_url: '', question_type: 'multiple_choice', correct_answer: '', choices: [{ choice_text: '', is_correct: true }] }])} className="w-full py-2 border-dashed border-2 border-blue-300 text-blue-600 font-bold rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition">+ เพิ่มข้อสอบ</button>
-    </div>
-  );
+  // แก้ไข fileInputClass เพื่อไม่ให้เกิด anti-pattern เรื่องสี
+  const fileInputClass = "mb-4 block w-full text-sm text-gray-700 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-300 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-bold file:bg-blue-100 file:text-blue-800 hover:file:bg-blue-200 transition-all";
 
   return (
     <div className="max-w-7xl mx-auto p-6 mt-8">

@@ -11,9 +11,9 @@ import { useOAuthCallback } from './hooks/useOAuthCallback';
 // Authen & Common
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage'));
-const CheckCodePage = lazy(() => import('./pages/CheckCodePage')); // เพิ่มหน้านี้
+const CheckCodePage = lazy(() => import('./pages/CheckCodePage'));
 const CompleteProfilePage = lazy(() => import('./pages/CompleteProfilePage'));
-const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage')); // เพิ่มหน้านี้
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 const HomePage = lazy(() => import('./pages/HomePage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 
@@ -43,7 +43,8 @@ const App: React.FC = () => {
       <div className="flex flex-col justify-center items-center min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white p-6 text-center transition-colors duration-300">
         <div className="relative flex justify-center items-center mb-8">
           <div className="absolute animate-ping inline-flex h-20 w-20 rounded-full bg-blue-400 opacity-20"></div>
-          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600"></div>
+          {/* แก้ไข Spinner เพื่อไม่ให้เกิด border-accent-on-rounded */}
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 border-t-blue-600 dark:border-gray-700 dark:border-t-blue-400"></div>
         </div>
         <h1 className="text-2xl md:text-3xl font-black mb-3">TeachTest</h1>
         <h2 className="text-xl font-bold mb-3 text-blue-600 dark:text-blue-400">กำลังเชื่อมต่อกับเซิร์ฟเวอร์...</h2>
@@ -63,13 +64,9 @@ const App: React.FC = () => {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-          
-          {/* เพิ่ม 2 เส้นทางนี้เพื่อให้กรอก OTP และรีเซ็ตรหัสผ่านได้ */}
           <Route path="/check" element={<CheckCodePage />} />
           <Route path="/reset" element={<ResetPasswordPage />} />
-          
           <Route path="/complete-profile" element={<CompleteProfilePage />} />
-          
           <Route path="/about" element={<AboutPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/download" element={<DownloadPage />} />
@@ -88,7 +85,6 @@ const App: React.FC = () => {
           
           {/* Admin Routes */}
           <Route path="/admin" element={<ProtectedRoute roles={['admin']}><AdminPage /></ProtectedRoute>} />
-          
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

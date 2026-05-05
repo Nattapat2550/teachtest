@@ -23,10 +23,8 @@ export default function PackageDetail() {
 
       if (isAuthenticated) {
         studentApi.getMyLearning().then(res => {
-           // เช็คว่ามีคอร์สครบหมดแล้วหรือยัง
            if (res.data) {
              const ownedIds = res.data.map((l: any) => l.course.id);
-             // รอให้ข้อมูล pkg ถูกโหลดมาก่อน ถึงจะเช็คได้
            }
         }).catch(() => {});
 
@@ -69,9 +67,8 @@ export default function PackageDetail() {
 
   return (
     <div className="max-w-7xl w-full mx-auto p-6 lg:p-10 mt-8 mb-20">
-      <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-md border border-purple-200 dark:border-gray-700 flex flex-col md:flex-row gap-8">
+      <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-md border border-gray-200 dark:border-gray-700 flex flex-col md:flex-row gap-8">
         
-        {/* คอลัมน์ซ้าย รูปปก */}
         <div className="w-full md:w-1/3">
           <div className="aspect-square bg-gray-100 dark:bg-gray-900 rounded-2xl overflow-hidden shadow-sm relative">
              {isOwned && (
@@ -84,15 +81,16 @@ export default function PackageDetail() {
         </div>
 
         <div className="flex-1">
-          <div className="inline-block bg-purple-100 text-purple-700 text-xs font-bold px-3 py-1 rounded-full mb-3">
+          <div className="inline-block bg-blue-100 text-blue-700 text-xs font-bold px-3 py-1 rounded-full mb-3">
              แพ็กเกจสุดคุ้มรวม {pkg.course_ids?.length || 0} คอร์ส
           </div>
+          {/* เอา text-purple ออก */}
           <h1 className="text-3xl font-black text-gray-900 dark:text-white mb-4">{pkg.title}</h1>
           <p className="text-gray-600 dark:text-gray-300 mb-6">{pkg.description}</p>
           
-          <div className="bg-purple-50 dark:bg-gray-900 p-6 rounded-2xl border border-purple-100 dark:border-gray-700">
+          <div className="bg-gray-50 dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-700">
             <div className="flex justify-between items-center mb-4">
-                <div className="text-3xl font-black text-purple-600">฿ {Number(pkg.price).toLocaleString()}</div>
+                <div className="text-3xl font-black text-blue-600">฿ {Number(pkg.price).toLocaleString()}</div>
                 {!isOwned && isAuthenticated && (
                     <div className="text-sm font-bold text-green-600 dark:text-green-400">ยอดเงินของคุณ: ฿{wallet}</div>
                 )}
@@ -103,7 +101,7 @@ export default function PackageDetail() {
                 <input 
                   type="text" 
                   placeholder="รหัสโปรโมชั่น (ส่วนลดกลาง)"
-                  className="flex-1 p-3 rounded-xl border outline-none dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-purple-500"
+                  className="flex-1 p-3 rounded-xl border outline-none dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500"
                   value={promoCode}
                   onChange={e => setPromoCode(e.target.value)}
                 />
@@ -126,7 +124,7 @@ export default function PackageDetail() {
             ) : (
               <button 
                 onClick={handleEnrollPackage}
-                className="w-full py-4 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl shadow-lg transition-all"
+                className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg transition-all"
               >
                 สั่งซื้อแพ็กเกจนี้
               </button>
@@ -135,13 +133,12 @@ export default function PackageDetail() {
         </div>
       </div>
 
-      {/* ส่วนแสดงคอร์สย่อยในแพ็กเกจ */}
       {pkg.included_courses && pkg.included_courses.length > 0 && (
         <div className="mt-12 bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-sm border border-gray-200 dark:border-gray-700">
-           <h3 className="text-xl font-bold mb-6 dark:text-white">คอร์สทั้งหมดที่จะได้รับในแพ็กเกจนี้:</h3>
+           <h3 className="text-xl font-bold mb-6 dark:text-gray-900">คอร์สทั้งหมดที่จะได้รับในแพ็กเกจนี้:</h3>
            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {pkg.included_courses.map((c: any) => (
-                  <div key={c.id} className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-700 hover:border-purple-300 transition-colors">
+                  <div key={c.id} className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-700 hover:border-blue-300 transition-colors">
                       {c.cover_image ? (
                         <img src={c.cover_image} alt={c.title} className="w-20 h-14 object-cover rounded-lg shadow-sm" />
                       ) : (

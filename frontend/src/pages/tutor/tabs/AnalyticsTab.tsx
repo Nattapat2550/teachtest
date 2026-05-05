@@ -17,7 +17,6 @@ export default function AnalyticsTab() {
 
   return (
     <div className="space-y-8 animate-fade-in">
-      {/* 1. สรุปภาพรวม (Summary Cards) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-linear-to-br from-green-500 to-emerald-600 rounded-2xl p-6 text-white shadow-lg shadow-green-500/30">
           <p className="text-green-100 font-bold mb-1">รายรับรวมทั้งหมด</p>
@@ -29,9 +28,9 @@ export default function AnalyticsTab() {
         </div>
       </div>
 
-      {/* 2. สถิติรายคอร์ส */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 p-6">
-        <h3 className="text-xl font-bold mb-4 dark:text-white border-l-4 border-blue-500 pl-3">ยอดขายแยกตามคอร์สเรียน</h3>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+        {/* เอา border-l-4 ออก เปลี่ยนมาใช้ Icon */}
+        <h3 className="text-xl font-bold mb-4 dark:text-white"><span className="text-blue-500 mr-2">📊</span>ยอดขายแยกตามคอร์สเรียน</h3>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -55,9 +54,9 @@ export default function AnalyticsTab() {
         </div>
       </div>
 
-      {/* 3. ประวัติการซื้อล่าสุด */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 p-6">
-        <h3 className="text-xl font-bold mb-4 dark:text-white border-l-4 border-green-500 pl-3">ประวัติการสั่งซื้อล่าสุด (Recent Sales)</h3>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+        {/* เอา border-l-4 ออก เปลี่ยนมาใช้ Icon */}
+        <h3 className="text-xl font-bold mb-4 dark:text-white"><span className="text-green-500 mr-2">💰</span>ประวัติการสั่งซื้อล่าสุด (Recent Sales)</h3>
         <div className="overflow-x-auto max-h-80">
           <table className="w-full text-left border-collapse">
             <thead className="bg-gray-50 dark:bg-gray-900/50 text-gray-600 dark:text-gray-400 text-sm sticky top-0">
@@ -87,9 +86,9 @@ export default function AnalyticsTab() {
         </div>
       </div>
 
-      {/* 4. ประวัติการใช้ Promo Code */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 p-6">
-        <h3 className="text-xl font-bold mb-4 dark:text-white border-l-4 border-purple-500 pl-3">การใช้งานโค้ดส่วนลด (Promo Code Usage)</h3>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+        {/* เอา border-l-4 ออก เปลี่ยนมาใช้ Icon */}
+        <h3 className="text-xl font-bold mb-4 dark:text-white"><span className="text-purple-500 mr-2">🎟️</span>การใช้งานโค้ดส่วนลด (Promo Code Usage)</h3>
         <div className="overflow-x-auto max-h-80">
           <table className="w-full text-left border-collapse">
             <thead className="bg-gray-50 dark:bg-gray-900/50 text-gray-600 dark:text-gray-400 text-sm sticky top-0">

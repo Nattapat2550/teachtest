@@ -2,12 +2,10 @@ import React from 'react';
 import PromoCodeManager from '../../../components/PromoCodeManager';
 import ExamEditor from '../../../components/ExamEditor';
 
-// Type definitions can be moved to a separate types.ts file for better structure
 interface ManageContentProps {
   courses: any[];
   selectedCourse: any;
   setSelectedCourse: (course: any) => void;
-  // ... (keep existing props for state management, or ideally move to a Context/Zustand slice later)
   editingPromoId: string | null;
   setEditingPromoId: (id: string | null) => void;
   promoForm: any;
@@ -15,7 +13,6 @@ interface ManageContentProps {
   promoCodes: any[];
   handleSavePromo: (e: React.FormEvent) => void;
   handleDeletePromo: (id: string) => void;
-  // Playlist & Items
   editingPlaylistId: string | null;
   setEditingPlaylistId: (id: string | null) => void;
   playlistForm: any;
@@ -32,7 +29,6 @@ interface ManageContentProps {
   handleSaveItem: (e: React.FormEvent, playlistId: string) => void;
   handleEditItem: (item: any) => void;
   handleDeleteItem: (id: string) => void;
-  // Exam
   examQuestions: any[];
   setExamQuestions: (questions: any[]) => void;
   fileInputClass: string;
@@ -150,7 +146,7 @@ export default function ManageContentTab(props: ManageContentProps) {
                         <button onClick={() => {
                           setEditingItemId("new"); 
                           setItemForm({ title: '', item_type: 'video', sort_order: (pl.items?.length || 0) + 1, content_url: '' });
-                        }} className="w-full border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:text-blue-600 hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-gray-800 py-4 font-bold rounded-2xl transition-all">
+                        }} className="w-full border-2 border-dashed border-gray-300 dark:border-gray-600 text-blue-600 hover:border-blue-400 hover:bg-blue-50/50 dark:hover:bg-gray-800 py-4 font-bold rounded-2xl transition-all">
                           + เพิ่มเนื้อหาใหม่ในบทเรียนนี้
                         </button>
                     </div>

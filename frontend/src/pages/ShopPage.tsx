@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { addToCart } from '../store/slices/cartSlice';
-import { shopApi } from '../services/api';
+import { courseApi } from '../services/api';
 
 interface Product {
   id: string;
@@ -29,8 +29,8 @@ export default function ShopPage() {
       try {
         setLoading(true);
         const [shopRes, productsRes] = await Promise.all([
-          shopApi.getShopInfo(id),
-          shopApi.getShopProducts(id)
+          courseApi.getPublishedCourses(),
+          courseApi.getCourseDetail(id)
         ]);
         setShop(shopRes.data);
         setProducts(productsRes.data || []);
@@ -66,7 +66,8 @@ export default function ShopPage() {
   if (loading) {
     return (
       <div className="flex justify-center items-center py-32 min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-orange-500"></div>
+        {/* แก้ไข Spinner ไม่ให้ใช้ border-t-4 ชนกับ rounded-full */}
+        <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 dark:border-gray-700 border-t-orange-500"></div>
       </div>
     );
   }
@@ -93,7 +94,8 @@ export default function ShopPage() {
         ) : (
           <div className="w-full h-full bg-linear-to-r from-orange-400 to-pink-500 flex items-center justify-center text-white/30 text-2xl font-bold">ไม่มีแบนเนอร์ร้านค้า</div>
         )}
-        <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-center p-6 backdrop-blur-xs">
+        {/* แก้ไขจาก bg-black/60 เป็น bg-gray-900/60 */}
+        <div className="absolute inset-0 bg-gray-900/60 flex flex-col items-center justify-center text-center p-6 backdrop-blur-xs">
           <h1 className="text-4xl md:text-5xl font-black text-white drop-shadow-lg mb-4">{shop.name}</h1>
           <p className="text-gray-200 text-lg md:text-xl max-w-2xl font-medium drop-shadow-md">
             {shop.description || 'ยินดีต้อนรับสู่ร้านของเรา เลือกชมสินค้าได้เลย!'}
@@ -105,7 +107,9 @@ export default function ShopPage() {
         
         {/* Search Bar */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
-          <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white border-l-4 border-orange-500 pl-4">
+          {/* เอา border-l-4 border-orange-500 ออก แล้วใช้วิธีเปลี่ยนสีไอคอน/อักษรแทน */}
+          <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white flex items-center gap-3">
+            <span className="text-orange-500 text-3xl leading-none">&bull;</span>
             สินค้าทั้งหมดจากร้านนี้ ({products.length})
           </h2>
           <div className="flex gap-4 w-full md:w-auto">

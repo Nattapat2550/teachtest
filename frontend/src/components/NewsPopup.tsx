@@ -23,7 +23,6 @@ export default function NewsPopup() {
       if (res.data && res.data.length > 0) {
         setNewsList(res.data);
         
-        // เช็คว่าผู้ใช้เคยเห็นข่าวล่าสุดหรือยัง
         const latestId = Math.max(...res.data.map((n: News) => n.id));
         const localSeen = localStorage.getItem('latestSeenNewsId');
         const sessionSeen = sessionStorage.getItem('latestSeenNewsId');
@@ -53,7 +52,8 @@ export default function NewsPopup() {
   if (!showNewsModal || newsList.length === 0) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 animate-fade-in">
+    // แก้ไข bg-black เป็น bg-gray-900/60
+    <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
       <div className="bg-white p-6 rounded-lg max-w-2xl w-full relative max-h-[90vh] flex flex-col">
         <button 
           onClick={closeNewsModal} 
@@ -84,14 +84,14 @@ export default function NewsPopup() {
               onChange={(e) => setDontShowAgain(e.target.checked)}
               className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
             />
-            <span className="text-gray-700 text-sm font-medium">รับทราบและไม่แสดงหน้านี้อีกจนกว่าจะมีข่าวใหม่</span>
+            <span className="text-gray-700 text-sm font-medium">ไม่แสดงข่าวสารนี้อีก (สำหรับประกาศรอบนี้)</span>
           </label>
           
           <button 
             onClick={closeNewsModal} 
             className="w-full sm:w-auto bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition font-medium"
           >
-            เข้าสู่เว็บไซต์
+            รับทราบและปิดหน้าต่าง
           </button>
         </div>
       </div>

@@ -178,11 +178,11 @@ export default function LearningRoom() {
         
         <div className="flex-1 overflow-y-auto">
           {learningData.course.playlists?.map((pl: any) => (
-            <div key={pl.id} className="border-b dark:border-gray-700">
-              <div className="px-6 py-4 bg-gray-100 dark:bg-gray-900/50 font-bold dark:text-gray-200 text-sm tracking-wide">
+            <div key={pl.id} className="border-b dark:border-gray-700 p-2">
+              <div className="px-4 py-3 bg-gray-100 dark:bg-gray-900/50 font-bold dark:text-gray-200 text-sm tracking-wide rounded-lg mb-2">
                 {pl.title}
               </div>
-              <div className="flex flex-col">
+              <div className="flex flex-col gap-1">
                 {pl.items?.map((item: any) => {
                   const completed = isCompleted(item.id);
                   const active = activeItem?.id === item.id;
@@ -190,8 +190,9 @@ export default function LearningRoom() {
                     <button 
                       key={item.id}
                       onClick={() => setActiveItem(item)}
-                      className={`w-full text-left px-6 py-4 flex items-start gap-4 transition-all border-l-4 ${
-                        active ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-600' : 'border-transparent hover:bg-gray-50 dark:hover:bg-gray-700'
+                      // แก้ไข: เอา border-l-4 ออก เปลี่ยนเป็น Background highlight ธรรมดา
+                      className={`w-full text-left px-4 py-3 flex items-start gap-4 transition-all rounded-xl ${
+                        active ? 'bg-blue-50 dark:bg-blue-900/20 shadow-sm border border-blue-100 dark:border-blue-800' : 'border border-transparent hover:bg-gray-50 dark:hover:bg-gray-700'
                       }`}
                     >
                       <div className={`mt-0.5 shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
@@ -220,14 +221,15 @@ export default function LearningRoom() {
             <h1 className="text-3xl font-black mb-8 text-gray-900 dark:text-white">{activeItem.title}</h1>
             
             {activeItem.item_type === 'video' && (
-              <div className="bg-black rounded-2xl overflow-hidden shadow-2xl ring-1 ring-gray-900/10 mb-8 relative">
+              // แก้ไข bg-black เป็น bg-gray-900
+              <div className="bg-gray-900 rounded-2xl overflow-hidden shadow-2xl ring-1 ring-gray-900/10 mb-8 relative">
                 <video 
                   ref={videoRef}
                   controls
                   controlsList="nodownload"
                   disablePictureInPicture
                   onContextMenu={(e) => e.preventDefault()}
-                  className="w-full aspect-video outline-none bg-black"
+                  className="w-full aspect-video outline-none bg-gray-900"
                   src={getFullUrl(activeItem.content_url)}
                   onLoadedMetadata={handleLoadedMetadata}
                   onTimeUpdate={handleTimeUpdate}
