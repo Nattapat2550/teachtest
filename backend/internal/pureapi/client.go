@@ -33,9 +33,6 @@ func (e *Error) Error() string {
 	return fmt.Sprintf("pure-api error (%d)", e.Status)
 }
 
-// NewClient(baseURL, apiKey [, internalURL])
-// - baseURL: e.g. https://pure-api-xxx.onrender.com
-// - internalURL (optional): e.g. http://pure-api:8080 (docker network) OR another base
 func NewClient(baseURL, apiKey string, internalURL ...string) *Client {
 	c := &Client{
 		baseURL: strings.TrimRight(baseURL, "/"),
@@ -68,7 +65,6 @@ func (c *Client) Delete(ctx context.Context, path string, body any, out any) err
 
 func (c *Client) candidates() []string {
 	var list []string
-	// try internal first (docker / private route), then public base
 	if strings.TrimSpace(c.internalURL) != "" {
 		list = append(list, c.internalURL)
 	}
@@ -90,7 +86,8 @@ func (c *Client) request(ctx context.Context, method, path string, body any, out
 		}
 	}
 
-	maxAttempts := 3
+	// 🛠 แก้ไข: เพิ่มจำนวนครั้งในการลองใหม่ เพื่อรอ pureapi ตื่น (สูงสุด 10 ครั้ง)
+	maxAttempts := 10
 	var lastErr error
 
 	bases := c.candidates()
@@ -133,7 +130,6 @@ func (c *Client) request(ctx context.Context, method, path string, body any, out
 			_ = resp.Body.Close()
 
 			if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-				// retry transient statuses
 				if (resp.StatusCode == 502 || resp.StatusCode == 503 || resp.StatusCode == 504) && attempt < maxAttempts {
 					lastErr = &Error{Status: resp.StatusCode, Message: "Pure API temporary error"}
 					time.Sleep(backoff(attempt))
@@ -156,7 +152,6 @@ func (c *Client) request(ctx context.Context, method, path string, body any, out
 				return nil
 			}
 
-			// treat "null" as success for void-ish endpoints
 			trim := strings.TrimSpace(string(b))
 			if trim == "null" || trim == "" {
 				return nil
@@ -189,10 +184,9 @@ func normalizePath(p string) string {
 	return p
 }
 
-func backoff(attempt int) time.Duration {
-	// 1.2s, 2.4s
-	base := 1200 * time.Millisecond
-	return base * time.Duration(1<<uint(attempt-1))
+// 🛠 แก้ไข: รอครั้งละ 5 วินาทีเสมอ (10 รอบ = รอดูนานสุด 50 วินาที)
+func backoff(_ int) time.Duration {
+	return 5 * time.Second
 }
 
 func isTransientNetErr(err error) bool {
@@ -210,7 +204,6 @@ func isTransientNetErr(err error) bool {
 }
 
 func extractMessage(j any) string {
-	// supports shapes like {error:{message}} or {message} or {error}
 	m, ok := j.(map[string]any)
 	if !ok {
 		return ""

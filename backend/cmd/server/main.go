@@ -14,18 +14,33 @@ import (
 	"backend/internal/config"
 	"backend/internal/database"
 	"backend/internal/httpapi"
+	"backend/internal/pureapi"
 )
 
 func main() {
 	setupLogger()
+
 	cfg := config.Load()
 	port := getPort(cfg.Port)
 
-	// 1. Initialize Database
+	// 1. Initialize Database ของ TeachTest
 	teachDB := database.InitDB(os.Getenv("TEACH_DB_URL"))
 	if teachDB != nil {
 		defer teachDB.Close()
 	}
+
+	// 1.5 🛠 เพิ่ม Goroutine สะกิดให้ pureapi ตื่นตั้งแต่เริ่มรันเซิร์ฟเวอร์
+	go func() {
+		slog.Info("Waking up Pure API...")
+		p := pureapi.NewClient(cfg.PureAPIBaseURL, cfg.PureAPIKey, cfg.PureAPIInternalURL)
+		
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		
+		// ยิงไปเพื่อเปิดระบบ
+		_ = p.Get(ctx, "/", nil)
+		slog.Info("Pure API wakeup signal sent")
+	}()
 
 	// 2. Setup HTTP Server
 	srv := &http.Server{

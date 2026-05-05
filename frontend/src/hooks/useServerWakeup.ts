@@ -7,44 +7,28 @@ export const useServerWakeup = () => {
 
   useEffect(() => {
     let isMounted = true;
-    let retryCount = 0;
-    const maxRetries = 5; // จำกัดการยิงซ้ำสูงสุด 5 ครั้ง
-    let timeoutId: ReturnType<typeof setTimeout>;
-
+    
     const wakeUpServers = async () => {
       try {
+        // ยิงไปที่ endpoint ไหนก็ได้ที่ต้องผ่าน Router หลัก
         await api.get('/api/homepage');
         if (isMounted) setServerReady(true);
-      } catch (error: any) {
+      } catch (error: unknown) {
         if (!isMounted) return;
-        
-        // ถ้าระบบตอบกลับมาเป็น 404 แสดงว่า Server ตื่นแล้ว แต่หา Endpoint ไม่เจอ ให้ปล่อยผ่านได้เลย
-        if (error.response && error.response.status === 404) {
-          setServerReady(true);
-          return;
-        }
-
-        retryCount++;
-        if (retryCount >= maxRetries) {
-          // หยุดการทำงานเมื่อครบกำหนด เพื่อป้องกันการยิง Request รัวๆ ใน Console
-          setServerReady(true);
-          return;
-        }
-
         setWakingUp(true);
-        const isRateLimited = error.response && error.response.status === 429;
+        
+        const err = error as { response?: { status?: number } };
+        const isRateLimited = err.response && err.response.status === 429;
+        
+        // ถ้าติด Rate limit ให้รอนานหน่อย (10 วิ) ถ้าเป็น error อื่นๆ รอ 5 วิ
         const retryDelay = isRateLimited ? 10000 : 5000;
         
-        timeoutId = setTimeout(wakeUpServers, retryDelay);
+        setTimeout(wakeUpServers, retryDelay);
       }
     };
     
     wakeUpServers();
-    
-    return () => { 
-      isMounted = false; 
-      clearTimeout(timeoutId); // ล้าง timeout เมื่อ component ถูกทำลาย
-    };
+    return () => { isMounted = false; };
   }, []);
 
   return { serverReady, wakingUp };
