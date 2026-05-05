@@ -29,8 +29,9 @@ export default function AnalyticsTab() {
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-        {/* เอา border-l-4 ออก เปลี่ยนมาใช้ Icon */}
-        <h3 className="text-xl font-bold mb-4 dark:text-white"><span className="text-blue-500 mr-2">📊</span>ยอดขายแยกตามคอร์สเรียน</h3>
+        <h3 className="text-xl font-bold mb-4 dark:text-white flex items-center gap-2">
+          <span>📊</span>ยอดขายแยกตามคอร์สเรียน
+        </h3>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -55,8 +56,9 @@ export default function AnalyticsTab() {
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-        {/* เอา border-l-4 ออก เปลี่ยนมาใช้ Icon */}
-        <h3 className="text-xl font-bold mb-4 dark:text-white"><span className="text-green-500 mr-2">💰</span>ประวัติการสั่งซื้อล่าสุด (Recent Sales)</h3>
+        <h3 className="text-xl font-bold mb-4 dark:text-white flex items-center gap-2">
+          <span>💰</span>ประวัติการสั่งซื้อล่าสุด (Recent Sales)
+        </h3>
         <div className="overflow-x-auto max-h-80">
           <table className="w-full text-left border-collapse">
             <thead className="bg-gray-50 dark:bg-gray-900/50 text-gray-600 dark:text-gray-400 text-sm sticky top-0">
@@ -75,7 +77,7 @@ export default function AnalyticsTab() {
                   <td className="p-3 font-mono text-gray-600 dark:text-gray-300">{s.student_id.substring(0,8)}...</td>
                   <td className="p-3 font-semibold text-gray-900 dark:text-white">{s.course_title}</td>
                   <td className="p-3">
-                    {s.promo_code_used ? <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs font-bold">{s.promo_code_used}</span> : '-'}
+                    {s.promo_code_used ? <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold">{s.promo_code_used}</span> : '-'}
                   </td>
                   <td className="p-3 text-right font-bold text-green-600 dark:text-green-400">฿{s.price_paid.toLocaleString()}</td>
                 </tr>
@@ -87,8 +89,9 @@ export default function AnalyticsTab() {
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-        {/* เอา border-l-4 ออก เปลี่ยนมาใช้ Icon */}
-        <h3 className="text-xl font-bold mb-4 dark:text-white"><span className="text-purple-500 mr-2">🎟️</span>การใช้งานโค้ดส่วนลด (Promo Code Usage)</h3>
+        <h3 className="text-xl font-bold mb-4 dark:text-white flex items-center gap-2">
+          <span>🎟️</span>การใช้งานโค้ดส่วนลด (Promo Code Usage)
+        </h3>
         <div className="overflow-x-auto max-h-80">
           <table className="w-full text-left border-collapse">
             <thead className="bg-gray-50 dark:bg-gray-900/50 text-gray-600 dark:text-gray-400 text-sm sticky top-0">
@@ -103,7 +106,7 @@ export default function AnalyticsTab() {
               {data.promo_usages.map((p: any, idx: number) => (
                 <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 text-sm">
                   <td className="p-3 text-gray-500 dark:text-gray-400">{new Date(p.used_at).toLocaleString('th-TH')}</td>
-                  <td className="p-3"><span className="bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs font-bold">{p.code}</span></td>
+                  <td className="p-3"><span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold">{p.code}</span></td>
                   <td className="p-3 font-mono text-gray-600 dark:text-gray-300">{p.student_id.substring(0,8)}...</td>
                   <td className="p-3 font-semibold text-gray-900 dark:text-white">{p.course_title}</td>
                 </tr>

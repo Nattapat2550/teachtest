@@ -269,8 +269,7 @@ export default function TutorDashboard() {
     finally { setUploading(false); setUploadProgress(0); }
   };
 
-  // แก้ไข fileInputClass เพื่อไม่ให้เกิด anti-pattern เรื่องสี
-  const fileInputClass = "mb-4 block w-full text-sm text-gray-700 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-300 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-bold file:bg-blue-100 file:text-blue-800 hover:file:bg-blue-200 transition-all";
+  const fileInputClass = "mb-4 block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-white focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-bold file:bg-gray-200 file:text-gray-900 hover:file:bg-gray-300 dark:file:bg-gray-600 dark:file:text-white transition-all";
 
   return (
     <div className="max-w-7xl mx-auto p-6 mt-8">

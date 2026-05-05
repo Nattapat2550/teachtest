@@ -28,14 +28,35 @@ export default function ShopPage() {
     const fetchShopData = async () => {
       try {
         setLoading(true);
+        // แก้ไข: สลับตำแหน่ง API ให้สอดคล้องกับตัวแปรที่รับค่า (shopRes = detail, productsRes = list)
         const [shopRes, productsRes] = await Promise.all([
-          courseApi.getPublishedCourses(),
-          courseApi.getCourseDetail(id)
+          courseApi.getCourseDetail(id),
+          courseApi.getPublishedCourses()
         ]);
-        setShop(shopRes.data);
-        setProducts(productsRes.data || []);
+        
+        // แปลงข้อมูลร้านค้าให้รองรับค่า banner_url ที่ UI ต้องการ
+        setShop({
+          name: shopRes.data.title || 'ร้านค้าออนไลน์',
+          banner_url: shopRes.data.cover_image,
+          description: shopRes.data.description
+        });
+
+        // แปลง Course ข้อมูลที่ได้ให้ตรงตาม Interface ของ Product
+        const mappedProducts: Product[] = (productsRes.data || []).map((c: any) => ({
+          id: c.id,
+          sku: `C-${c.id.substring(0, 4).toUpperCase()}`, // สร้าง SKU จำลอง
+          name: c.title,
+          description: c.description,
+          price: Number(c.price),
+          stock: 999, // คอร์สออนไลน์สามารถมองเป็นสินค้าที่มีสต็อกไม่จำกัดได้
+          image_url: c.cover_image
+        }));
+
+        setProducts(mappedProducts);
       } catch (err) {
         console.error("Failed to load shop data", err);
+        setShop(null);
+        setProducts([]);
       } finally {
         setLoading(false);
       }
@@ -66,7 +87,6 @@ export default function ShopPage() {
   if (loading) {
     return (
       <div className="flex justify-center items-center py-32 min-h-screen bg-gray-50 dark:bg-gray-900">
-        {/* แก้ไข Spinner ไม่ให้ใช้ border-t-4 ชนกับ rounded-full */}
         <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 dark:border-gray-700 border-t-orange-500"></div>
       </div>
     );
@@ -94,7 +114,6 @@ export default function ShopPage() {
         ) : (
           <div className="w-full h-full bg-linear-to-r from-orange-400 to-pink-500 flex items-center justify-center text-white/30 text-2xl font-bold">ไม่มีแบนเนอร์ร้านค้า</div>
         )}
-        {/* แก้ไขจาก bg-black/60 เป็น bg-gray-900/60 */}
         <div className="absolute inset-0 bg-gray-900/60 flex flex-col items-center justify-center text-center p-6 backdrop-blur-xs">
           <h1 className="text-4xl md:text-5xl font-black text-white drop-shadow-lg mb-4">{shop.name}</h1>
           <p className="text-gray-200 text-lg md:text-xl max-w-2xl font-medium drop-shadow-md">
@@ -107,7 +126,6 @@ export default function ShopPage() {
         
         {/* Search Bar */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
-          {/* เอา border-l-4 border-orange-500 ออก แล้วใช้วิธีเปลี่ยนสีไอคอน/อักษรแทน */}
           <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white flex items-center gap-3">
             <span className="text-orange-500 text-3xl leading-none">&bull;</span>
             สินค้าทั้งหมดจากร้านนี้ ({products.length})

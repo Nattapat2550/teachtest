@@ -83,7 +83,6 @@ export default function CarouselTab() {
 
   return (
     <div className="space-y-10 w-full">
-      {/* ---------------- ฟอร์มเพิ่มแบนเนอร์ ---------------- */}
       <form onSubmit={handleCreate} className="bg-white dark:bg-gray-800 p-8 lg:p-10 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none border border-gray-100 dark:border-gray-700 relative overflow-hidden w-full">
         <div className="absolute top-0 left-0 w-full h-2 bg-linear-to-r from-blue-400 to-indigo-500"></div>
         
@@ -117,7 +116,6 @@ export default function CarouselTab() {
         </div>
       </form>
 
-      {/* ---------------- รายการแบนเนอร์ ---------------- */}
       <h3 className="text-2xl font-black dark:text-white flex items-center gap-3">
         <img src={paintImg} alt="List" className="w-6 h-6 dark:invert opacity-80" />
         รายการแบนเนอร์ปัจจุบัน
@@ -129,12 +127,10 @@ export default function CarouselTab() {
             <div className="aspect-video w-full bg-gray-100 dark:bg-gray-900 relative overflow-hidden">
               <img src={item.image_url} alt="Banner" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
               {!item.is_active && (
-                // แก้ไข bg-black/50
                 <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center">
                   <span className="bg-red-500 text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest">Hidden</span>
                 </div>
               )}
-              {/* แก้ไข bg-black/60 */}
               <div className="absolute top-3 left-3 bg-gray-900/70 text-white px-3 py-1 rounded-lg text-xs font-bold">
                 Order: {item.sort_order}
               </div>
@@ -156,7 +152,6 @@ export default function CarouselTab() {
         ))}
       </div>
 
-      {/* ---------------- Modal แก้ไขแบนเนอร์ ---------------- */}
       {editingItem && (
         <div className="fixed inset-0 bg-gray-900/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <form onSubmit={handleUpdate} className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-2xl shadow-2xl flex flex-col">

@@ -151,7 +151,6 @@ export default function UsersTab() {
       </div>
 
       {walletModal && selectedUser && (
-        // แก้ไข: bg-black/50 เป็น bg-gray-900/60
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4">
           <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-sm shadow-2xl p-6">
             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">เพิ่ม/ลดยอดเงินกระเป๋า</h3>

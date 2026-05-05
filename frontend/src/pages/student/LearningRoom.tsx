@@ -190,9 +190,8 @@ export default function LearningRoom() {
                     <button 
                       key={item.id}
                       onClick={() => setActiveItem(item)}
-                      // แก้ไข: เอา border-l-4 ออก เปลี่ยนเป็น Background highlight ธรรมดา
                       className={`w-full text-left px-4 py-3 flex items-start gap-4 transition-all rounded-xl ${
-                        active ? 'bg-blue-50 dark:bg-blue-900/20 shadow-sm border border-blue-100 dark:border-blue-800' : 'border border-transparent hover:bg-gray-50 dark:hover:bg-gray-700'
+                        active ? 'bg-blue-50 dark:bg-blue-900/20 shadow-sm ring-1 ring-blue-200 dark:ring-blue-800' : 'border border-transparent hover:bg-gray-50 dark:hover:bg-gray-700'
                       }`}
                     >
                       <div className={`mt-0.5 shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
@@ -221,7 +220,6 @@ export default function LearningRoom() {
             <h1 className="text-3xl font-black mb-8 text-gray-900 dark:text-white">{activeItem.title}</h1>
             
             {activeItem.item_type === 'video' && (
-              // แก้ไข bg-black เป็น bg-gray-900
               <div className="bg-gray-900 rounded-2xl overflow-hidden shadow-2xl ring-1 ring-gray-900/10 mb-8 relative">
                 <video 
                   ref={videoRef}
@@ -299,7 +297,6 @@ export default function LearningRoom() {
                         <div key={qIdx} className="p-6 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700">
                           <p className="font-bold text-lg mb-4 text-gray-900 dark:text-white">{qIdx + 1}. {q.question_text}</p>
                           
-                          {/* Rendering Exam Media (Bug Fix 2) */}
                           {q.image_url && (
                             <div className="mb-6">
                               {q.image_url.match(/\.(mp4|webm|mov)$/i) ? (

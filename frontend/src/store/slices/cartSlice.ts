@@ -30,16 +30,28 @@ const cartSlice = createSlice({
           existing.quantity = action.payload.stock;
         }
       } else {
-        state.items.push(action.payload);
+        // จำกัดไม่ให้เพิ่มเกิดจำนวนสต็อกที่มีตั้งแต่ครั้งแรก
+        const qty = Math.min(action.payload.quantity, action.payload.stock);
+        if (qty > 0) {
+          state.items.push({ ...action.payload, quantity: qty });
+        }
       }
     },
     removeFromCart: (state, action: PayloadAction<string>) => {
       state.items = state.items.filter(item => item.productId !== action.payload);
     },
     updateQuantity: (state, action: PayloadAction<{productId: string, quantity: number}>) => {
-      const item = state.items.find(i => i.productId === action.payload.productId);
-      if (item) {
-        item.quantity = action.payload.quantity;
+      const itemIndex = state.items.findIndex(i => i.productId === action.payload.productId);
+      if (itemIndex !== -1) {
+        const item = state.items[itemIndex];
+        // หากจำนวนที่อัปเดตเหลือน้อยกว่าหรือเท่ากับ 0 ให้ลบออกจากตะกร้าอัตโนมัติ
+        if (action.payload.quantity <= 0) {
+          state.items.splice(itemIndex, 1);
+        } else if (action.payload.quantity <= item.stock) {
+          item.quantity = action.payload.quantity;
+        } else {
+          item.quantity = item.stock;
+        }
       }
     },
     clearCart: (state) => {
