@@ -20,24 +20,34 @@ import (
 // ตัวแปร Global สำหรับเก็บ Connection ของ Firebase Bucket
 var storageBucket *storage.BucketHandle
 
-// initFirebase ฟังก์ชันสำหรับเชื่อมต่อ Firebase (ทำแค่ครั้งเดียว)
+// initFirebase ฟังก์ชันสำหรับเชื่อมต่อ Firebase
 func initFirebase() error {
 	if storageBucket != nil {
 		return nil // หากเชื่อมต่อแล้วไม่ต้องทำซ้ำ
 	}
 
 	ctx := context.Background()
-	credPath := os.Getenv("FIREBASE_CREDENTIALS")
-	if credPath == "" {
-		credPath = "firebase-adminsdk.json" // Fallback default
-	}
 
 	bucketName := os.Getenv("FIREBASE_STORAGE_BUCKET")
 	if bucketName == "" {
 		return fmt.Errorf("FIREBASE_STORAGE_BUCKET is not set in environment variables")
 	}
 
-	opt := option.WithCredentialsFile(credPath)
+	var opt option.ClientOption
+
+	// 1. ลองอ่านจาก Environment Variable แบบ String ก่อน (ใช้ตอน Deploy บน Render)
+	credJSON := os.Getenv("FIREBASE_CREDENTIALS_JSON")
+	if credJSON != "" {
+		opt = option.WithCredentialsJSON([]byte(credJSON))
+	} else {
+		// 2. ถ้าไม่มี ให้ใช้ไฟล์ .json ปกติ (ใช้ตอนรันพัฒนาในเครื่อง Local)
+		credPath := os.Getenv("FIREBASE_CREDENTIALS")
+		if credPath == "" {
+			credPath = "firebase-adminsdk.json" // Fallback default
+		}
+		opt = option.WithCredentialsFile(credPath)
+	}
+
 	app, err := firebase.NewApp(ctx, nil, opt)
 	if err != nil {
 		return fmt.Errorf("error initializing firebase app: %v", err)
