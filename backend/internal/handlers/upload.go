@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -10,8 +11,51 @@ import (
 	"strings"
 	"time"
 
+	"cloud.google.com/go/storage"
+	firebase "firebase.google.com/go/v4"
 	"github.com/go-chi/chi/v5"
+	"google.golang.org/api/option"
 )
+
+// ตัวแปร Global สำหรับเก็บ Connection ของ Firebase Bucket
+var storageBucket *storage.BucketHandle
+
+// initFirebase ฟังก์ชันสำหรับเชื่อมต่อ Firebase (ทำแค่ครั้งเดียว)
+func initFirebase() error {
+	if storageBucket != nil {
+		return nil // หากเชื่อมต่อแล้วไม่ต้องทำซ้ำ
+	}
+
+	ctx := context.Background()
+	credPath := os.Getenv("FIREBASE_CREDENTIALS")
+	if credPath == "" {
+		credPath = "firebase-adminsdk.json" // Fallback default
+	}
+
+	bucketName := os.Getenv("FIREBASE_STORAGE_BUCKET")
+	if bucketName == "" {
+		return fmt.Errorf("FIREBASE_STORAGE_BUCKET is not set in environment variables")
+	}
+
+	opt := option.WithCredentialsFile(credPath)
+	app, err := firebase.NewApp(ctx, nil, opt)
+	if err != nil {
+		return fmt.Errorf("error initializing firebase app: %v", err)
+	}
+
+	client, err := app.Storage(ctx)
+	if err != nil {
+		return fmt.Errorf("error getting storage client: %v", err)
+	}
+
+	bucket, err := client.Bucket(bucketName)
+	if err != nil {
+		return fmt.Errorf("error getting bucket: %v", err)
+	}
+
+	storageBucket = bucket
+	return nil
+}
 
 func (h *Handler) UploadFile(w http.ResponseWriter, r *http.Request) {
 	// จำกัดขนาดไฟล์ที่ 50MB
@@ -24,25 +68,35 @@ func (h *Handler) UploadFile(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	// สร้างโฟลเดอร์ถ้ายังไม่มี
-	os.MkdirAll("uploads", os.ModePerm)
+	// Initialize Firebase ก่อนอัปโหลด
+	if err := initFirebase(); err != nil {
+		h.writeError(w, http.StatusInternalServerError, "Failed to connect to cloud storage")
+		return
+	}
 
 	// ทำความสะอาดชื่อไฟล์ ป้องกันปัญหาเว้นวรรค
 	cleanName := header.Filename
 	cleanName = strings.ReplaceAll(cleanName, " ", "_")
 	cleanName = strings.ReplaceAll(cleanName, "%20", "_")
 	filename := fmt.Sprintf("%d_%s", time.Now().Unix(), filepath.Base(cleanName))
-	savePath := filepath.Join("uploads", filename)
 
-	out, err := os.Create(savePath)
-	if err != nil {
-		h.writeError(w, http.StatusInternalServerError, "Failed to save file on server")
+	// สร้าง Writer เพื่อเขียนไฟล์ลง Firebase
+	ctx := context.Background()
+	wc := storageBucket.Object(filename).NewWriter(ctx)
+	wc.ContentType = header.Header.Get("Content-Type")
+
+	// สตรีมไฟล์ไปที่ Firebase
+	if _, err := io.Copy(wc, file); err != nil {
+		h.writeError(w, http.StatusInternalServerError, "Failed to upload file to cloud storage")
 		return
 	}
-	defer out.Close()
 
-	io.Copy(out, file)
+	if err := wc.Close(); err != nil {
+		h.writeError(w, http.StatusInternalServerError, "Failed to finalize file upload")
+		return
+	}
 
+	// ใช้ Path เดิมเพื่อให้ Frontend ยังคงสามารถดึงไฟล์ผ่าน Route ป้องกันของระบบเราได้
 	fileUrl := "/uploads/" + filename
 	WriteJSON(w, http.StatusOK, map[string]string{"url": fileUrl})
 }
@@ -55,31 +109,47 @@ func (h *Handler) ServeProtectedFile(w http.ResponseWriter, r *http.Request) {
 		fileName = decodedName
 	}
 
-	// 2. ลองค้นหาไฟล์ในหลายๆ รูปแบบ
-	pathsToTry := []string{
-		filepath.Join("uploads", fileName),
-		filepath.Join("uploads", strings.ReplaceAll(fileName, " ", "_")),
-		filepath.Join("uploads", strings.ReplaceAll(fileName, "_", " ")),
+	// Initialize Firebase ก่อนดึงไฟล์
+	if err := initFirebase(); err != nil {
+		h.writeError(w, http.StatusInternalServerError, "Storage service unavailable")
+		return
 	}
 
-	var validFilePath string
+	ctx := context.Background()
+	
+	// 2. ลองค้นหาไฟล์ใน Firebase (เช็คว่ามีอยู่จริงไหม)
+	var obj *storage.ObjectHandle
+	var attrs *storage.ObjectAttrs
+
+	pathsToTry := []string{
+		fileName,
+		strings.ReplaceAll(fileName, " ", "_"),
+		strings.ReplaceAll(fileName, "_", " "),
+	}
+
+	var found bool
 	for _, p := range pathsToTry {
-		if _, err := os.Stat(p); err == nil {
-			validFilePath = p
+		tempObj := storageBucket.Object(p)
+		tempAttrs, err := tempObj.Attrs(ctx)
+		if err == nil {
+			obj = tempObj
+			attrs = tempAttrs
+			found = true
+			fileName = p
 			break
 		}
 	}
 
-	if validFilePath == "" {
+	if !found {
 		h.writeError(w, http.StatusNotFound, "File not found")
 		return
 	}
 
-	ext := strings.ToLower(filepath.Ext(validFilePath))
+	ext := strings.ToLower(filepath.Ext(fileName))
 
 	// 3. ปล่อยผ่านไฟล์รูปภาพปกติ (เข้าถึงได้เลย)
 	if ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".gif" || ext == ".webp" {
-		http.ServeFile(w, r, validFilePath)
+		streamFirebaseObject(w, r, obj, attrs)
 		return
 	}
 
@@ -116,12 +186,33 @@ func (h *Handler) ServeProtectedFile(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Accept-Ranges", "bytes")
 		w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate")
 		w.Header().Set("Pragma", "no-cache")
-		http.ServeFile(w, r, validFilePath)
-		return // คืนค่าทันที ไม่ให้รันไปบล็อกด้านล่าง
+		streamFirebaseObject(w, r, obj, attrs)
+		return
 	}
 
 	// 6. 🌟 เพิ่ม Fallback สำหรับไฟล์ประเภทเอกสาร (.pdf, .doc, .zip ฯลฯ)
 	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate")
 	w.Header().Set("Pragma", "no-cache")
-	http.ServeFile(w, r, validFilePath)
+	
+	// ตั้งชื่อไฟล์สำหรับดาวน์โหลด
+	w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=\"%s\"", filepath.Base(fileName)))
+	streamFirebaseObject(w, r, obj, attrs)
+}
+
+// Helper ฟังก์ชันสำหรับสตรีมไฟล์จาก Firebase ส่งให้ Client
+func streamFirebaseObject(w http.ResponseWriter, r *http.Request, obj *storage.ObjectHandle, attrs *storage.ObjectAttrs) {
+	ctx := context.Background()
+	rc, err := obj.NewReader(ctx)
+	if err != nil {
+		http.Error(w, "Failed to read file from storage", http.StatusInternalServerError)
+		return
+	}
+	defer rc.Close()
+
+	// เซ็ต Headers พื้นฐาน
+	w.Header().Set("Content-Type", attrs.ContentType)
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", attrs.Size))
+
+	// คัดลอกข้อมูลจาก Firebase ส่งไปยัง HTTP Response โดยตรง
+	io.Copy(w, rc)
 }
