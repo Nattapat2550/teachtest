@@ -80,6 +80,7 @@ func (h *Handler) UploadFile(w http.ResponseWriter, r *http.Request) {
 
 	// Initialize Firebase ก่อนอัปโหลด
 	if err := initFirebase(); err != nil {
+		fmt.Println("❌ Firebase Init Error:", err)
 		h.writeError(w, http.StatusInternalServerError, "Failed to connect to cloud storage")
 		return
 	}
@@ -97,11 +98,13 @@ func (h *Handler) UploadFile(w http.ResponseWriter, r *http.Request) {
 
 	// สตรีมไฟล์ไปที่ Firebase
 	if _, err := io.Copy(wc, file); err != nil {
+		fmt.Println("❌ Firebase Init Error:", err)
 		h.writeError(w, http.StatusInternalServerError, "Failed to upload file to cloud storage")
 		return
 	}
 
 	if err := wc.Close(); err != nil {
+		fmt.Println("❌ Firebase Init Error:", err)
 		h.writeError(w, http.StatusInternalServerError, "Failed to finalize file upload")
 		return
 	}
