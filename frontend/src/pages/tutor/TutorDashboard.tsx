@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import api, { tutorApi } from '../../services/api';
+import { compressImage } from '../../utils/imageCompression';
 import ManageCoursesTab from './tabs/ManageCoursesTab';
 import ManagePackagesTab from './tabs/ManagePackagesTab';
 import GlobalPromosTab from './tabs/GlobalPromosTab';
@@ -238,8 +239,9 @@ export default function TutorDashboard() {
 
       if (itemForm.item_type !== 'exam') {
         if (selectedFile) {
+          const compressedFile = await compressImage(selectedFile);
           const fd = new FormData();
-          fd.append('file', selectedFile);
+          fd.append('file', compressedFile);
           const uploadRes = await api.post('/api/tutor/upload', fd, {
             onUploadProgress: (pev: any) => {
               if (pev.total) setUploadProgress(Math.round((pev.loaded * 100) / pev.total));

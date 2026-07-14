@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import api from '../services/api';
+import { compressImage } from '../utils/imageCompression';
 
 interface ExamEditorProps {
   examQuestions: any[];
@@ -29,8 +30,10 @@ export default function ExamEditor({ examQuestions, setExamQuestions }: ExamEdit
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
+    
+    const compressedFile = await compressImage(file);
     const fd = new FormData();
-    fd.append('file', file);
+    fd.append('file', compressedFile);
     try {
         const { data } = await api.post('/api/tutor/upload', fd);
         updateQuestion(qIdx, 'image_url', data.url);

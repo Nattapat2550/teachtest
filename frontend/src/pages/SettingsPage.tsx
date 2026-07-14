@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { compressImage } from '../utils/imageCompression';
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -50,8 +51,9 @@ export default function SettingsPage() {
   const handleAvatarChange = async (e: any) => {
     const file = e.target.files[0];
     if (!file) return;
+    const compressedFile = await compressImage(file);
     const formData = new FormData();
-    formData.append('avatar', file);
+    formData.append('avatar', compressedFile);
 
     try {
       const { data } = await api.post('/api/users/me/avatar', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
