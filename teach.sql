@@ -144,9 +144,8 @@ CREATE TABLE documents (
 );
 CREATE TABLE promo_code_uses (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    student_id TYPE VARCHAR(255),
     promo_code_id UUID REFERENCES promo_codes(id) ON DELETE CASCADE,
-    student_id UUID NOT NULL,
+    student_id VARCHAR(255) NOT NULL,
     enrollment_id UUID REFERENCES course_enrollments(id) ON DELETE CASCADE,
     used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
