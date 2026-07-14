@@ -137,7 +137,7 @@ export default function LearningRoom() {
     let finalUrl = url;
     
     if (!url.startsWith('http')) {
-      const baseUrl = (api.defaults.baseURL || 'https://teachtest.onrender.com').replace(/\/$/, '');
+      const baseUrl = (api.defaults.baseURL as string || '').replace(/\/$/, '');
       const path = url.startsWith('/') ? url : `/${url}`;
       finalUrl = `${baseUrl}${path}`;
     }

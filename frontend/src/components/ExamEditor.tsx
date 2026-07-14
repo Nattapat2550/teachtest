@@ -12,7 +12,7 @@ export default function ExamEditor({ examQuestions, setExamQuestions }: ExamEdit
   const getFullUrl = (url: string) => {
     if (!url) return '';
     if (url.startsWith('http')) return url;
-    const baseUrl = import.meta.env.VITE_API_URL || 'https://teachtest.onrender.com';
+    const baseUrl = (api.defaults.baseURL || '').replace(/\/$/, '');
     const token = localStorage.getItem('token') || '';
     const path = url.startsWith('/') ? url : `/${url}`;
     const separator = path.includes('?') ? '&' : '?';
