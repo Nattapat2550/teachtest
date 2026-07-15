@@ -1,9 +1,35 @@
+-- =======================================================
+--  UUIDv7 Generator Function
+-- =======================================================
+CREATE OR REPLACE FUNCTION uuid_generate_v7()
+RETURNS uuid
+AS $$
+DECLARE
+  v_unix_t bigint;
+  v_rand_a bigint;
+  v_rand_b bigint;
+  v_rand_c bigint;
+BEGIN
+  v_unix_t := (extract(epoch from clock_timestamp()) * 1000)::bigint;
+  v_rand_a := (random() * 4095)::bigint;
+  v_rand_b := (random() * 4095)::bigint;
+  v_rand_c := (random() * 281474976710655)::bigint;
+  
+  RETURN (
+    lpad(to_hex(v_unix_t), 12, '0') ||
+    '7' || lpad(to_hex(v_rand_a), 3, '0') ||
+    to_hex(8 + (random() * 3)::int) || lpad(to_hex(v_rand_b), 3, '0') ||
+    lpad(to_hex(v_rand_c), 12, '0')
+  )::uuid;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
 -- teachtest.sql
 -- ==========================================
 -- 1. ระบบจัดการสิทธิ์ผู้ใช้งาน (User Roles)
 -- ==========================================
 CREATE TABLE user_roles (
-    user_id VARCHAR(255) PRIMARY KEY,
+    user_id UUID PRIMARY KEY,
     role VARCHAR(50) DEFAULT 'student' -- กำหนดค่าเริ่มต้นเป็น student
 );
 
@@ -13,8 +39,8 @@ CREATE TABLE user_roles (
 
 -- ตารางหลักสูตร (Courses)
 CREATE TABLE courses (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tutor_id VARCHAR(255) NOT NULL, -- อ้างอิง ID ของติวเตอร์ที่สร้าง
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
+    tutor_id UUID NOT NULL, -- อ้างอิง ID ของติวเตอร์ที่สร้าง
     title VARCHAR(255) NOT NULL,
     description TEXT,
     price DECIMAL(10, 2) DEFAULT 0.00,
@@ -27,8 +53,8 @@ CREATE TABLE courses (
 );
 
 CREATE TABLE course_packages (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tutor_id VARCHAR(255) NOT NULL,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
+    tutor_id UUID NOT NULL,
     title VARCHAR(255) NOT NULL,
     description TEXT,
     price DECIMAL(10, 2) DEFAULT 0.00,
@@ -40,7 +66,7 @@ CREATE TABLE course_packages (
 );
 -- ตารางโค้ดส่วนลดสำหรับหลักสูตร (Promo Codes)
 CREATE TABLE IF NOT EXISTS promo_codes (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
     course_id UUID REFERENCES courses(id) ON DELETE CASCADE NULL,
     code VARCHAR(50) NOT NULL,
     discount_amount DECIMAL(10, 2) NOT NULL,
@@ -51,7 +77,7 @@ CREATE TABLE IF NOT EXISTS promo_codes (
 
 -- ตารางเพลย์ลิสต์ (หมวดหมู่ในหลักสูตร)
 CREATE TABLE playlists (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
     course_id UUID REFERENCES courses(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
     sort_order INT DEFAULT 0
@@ -59,7 +85,7 @@ CREATE TABLE playlists (
 
 -- ตารางบทเรียน (คลิป, ไฟล์, ข้อสอบ)
 CREATE TABLE playlist_items (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
     playlist_id UUID REFERENCES playlists(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
     item_type VARCHAR(50) CHECK (item_type IN ('video', 'file', 'exam')),
@@ -73,15 +99,15 @@ CREATE TABLE playlist_items (
 -- ==========================================
 -- สร้างตารางกระเป๋าเงิน (แก้บัค Error 500)
 CREATE TABLE IF NOT EXISTS user_wallets (
-    user_id VARCHAR(255) PRIMARY KEY,
+    user_id UUID PRIMARY KEY,
     balance DECIMAL(10, 2) DEFAULT 0.00
 );
 
 -- ตารางการลงทะเบียนเรียน (เมื่อนักเรียนซื้อคอร์ส)
 CREATE TABLE course_enrollments (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
     course_id UUID REFERENCES courses(id) ON DELETE CASCADE,
-    student_id VARCHAR(255) NOT NULL, -- อ้างอิง ID ของนักเรียน
+    student_id UUID NOT NULL, -- อ้างอิง ID ของนักเรียน
     price_paid DECIMAL(10, 2) NOT NULL, -- ราคาที่จ่ายจริง (หลังหักส่วนลด)
     promo_code_used VARCHAR(50),
     enrolled_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -90,7 +116,7 @@ CREATE TABLE course_enrollments (
 
 -- ตารางเก็บความคืบหน้าการเรียน (Progress)
 CREATE TABLE user_progress (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
     enrollment_id UUID REFERENCES course_enrollments(id) ON DELETE CASCADE,
     item_id UUID REFERENCES playlist_items(id) ON DELETE CASCADE,
     is_completed BOOLEAN DEFAULT FALSE,
@@ -104,7 +130,7 @@ CREATE TABLE user_progress (
 
 -- ตารางข่าวสาร/ประกาศ (News)
 CREATE TABLE news (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
     title VARCHAR(255) NOT NULL,
     content TEXT NOT NULL,
     image_url TEXT,
@@ -114,7 +140,7 @@ CREATE TABLE news (
 
 -- ตารางแบนเนอร์/สไลด์ (Carousel)
 CREATE TABLE carousels (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
     image_url TEXT NOT NULL,
     link_url TEXT,
     is_active BOOLEAN DEFAULT TRUE,
@@ -124,8 +150,8 @@ CREATE TABLE carousels (
 
 -- ตารางคำร้องเรียน/อุทธรณ์ (Appeals)
 CREATE TABLE appeals (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id VARCHAR(255) NOT NULL,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
+    user_id UUID NOT NULL,
     topic VARCHAR(255) NOT NULL,
     message TEXT NOT NULL,
     status VARCHAR(50) DEFAULT 'pending',
@@ -134,7 +160,7 @@ CREATE TABLE appeals (
 
 -- ตารางเอกสารประกอบการสอนแบบสาธารณะ (Documents)
 CREATE TABLE documents (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
     title VARCHAR(255) NOT NULL,
     description TEXT,
     cover_image TEXT,
@@ -143,16 +169,16 @@ CREATE TABLE documents (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE promo_code_uses (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
     promo_code_id UUID REFERENCES promo_codes(id) ON DELETE CASCADE,
-    student_id VARCHAR(255) NOT NULL,
+    student_id UUID NOT NULL,
     enrollment_id UUID REFERENCES course_enrollments(id) ON DELETE CASCADE,
     used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- สร้างตารางระบบข้อสอบสไตล์ Google Form (ข้อ 4)
 CREATE TABLE exams (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
     playlist_item_id UUID REFERENCES playlist_items(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
     description TEXT,
@@ -160,7 +186,7 @@ CREATE TABLE exams (
 );
 
 CREATE TABLE exam_questions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
     exam_id UUID REFERENCES exams(id) ON DELETE CASCADE,
     question_text TEXT NOT NULL,
     question_type VARCHAR(50) DEFAULT 'multiple_choice', -- 'multiple_choice', 'short_answer'
@@ -168,7 +194,7 @@ CREATE TABLE exam_questions (
 );
 
 CREATE TABLE exam_choices (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
     question_id UUID REFERENCES exam_questions(id) ON DELETE CASCADE,
     choice_text TEXT NOT NULL,
     is_correct BOOLEAN DEFAULT false
