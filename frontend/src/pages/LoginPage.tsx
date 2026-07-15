@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
 
 export default function LoginPage() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -29,9 +30,9 @@ export default function LoginPage() {
       localStorage.setItem('role', data.owner.role || 'student');
       
       if (data.owner.role === 'admin') {
-        window.location.href = '/admin';
+        navigate('/admin');
       } else {
-        window.location.href = '/home';
+        navigate('/home');
       }
       
     } catch (err: any) {
