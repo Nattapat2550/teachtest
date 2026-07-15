@@ -161,9 +161,9 @@ export default function LearningRoom() {
   if (!learningData) return <div className="flex justify-center items-center h-screen">กำลังโหลด...</div>;
 
   return (
-    <div className="flex flex-col md:flex-row min-h-[calc(100vh-80px)] bg-gray-50 dark:bg-gray-900">
+    <div className="flex flex-col md:flex-row min-h-[calc(100vh-80px)] bg-canvas ">
       
-      <div className="w-full md:w-96 bg-white dark:bg-gray-800 border-r dark:border-gray-700 flex flex-col shadow-lg z-10">
+      <div className="w-full md:w-96 bg-white  border-r  flex flex-col shadow-lg z-10">
         <div className="p-6 bg-linear-to-r from-blue-600 to-indigo-600 text-white">
           <h2 className="text-xl font-black leading-snug mb-3">{learningData.course.title}</h2>
           
@@ -178,8 +178,8 @@ export default function LearningRoom() {
         
         <div className="flex-1 overflow-y-auto">
           {learningData.course.playlists?.map((pl: any) => (
-            <div key={pl.id} className="border-b dark:border-gray-700 p-2">
-              <div className="px-4 py-3 bg-gray-100 dark:bg-gray-900/50 font-bold dark:text-gray-200 text-sm tracking-wide rounded-lg mb-2">
+            <div key={pl.id} className="border-b  p-2">
+              <div className="px-4 py-3 bg-gray-100 /50 font-bold  text-sm tracking-wide rounded-md mb-2">
                 {pl.title}
               </div>
               <div className="flex flex-col gap-1">
@@ -190,17 +190,17 @@ export default function LearningRoom() {
                     <button 
                       key={item.id}
                       onClick={() => setActiveItem(item)}
-                      className={`w-full text-left px-4 py-3 flex items-start gap-4 transition-all rounded-xl ${
-                        active ? 'bg-blue-50 dark:bg-blue-900/20 shadow-sm ring-1 ring-blue-200 dark:ring-blue-800' : 'border border-transparent hover:bg-gray-50 dark:hover:bg-gray-700'
+                      className={`w-full text-left px-4 py-3 flex items-start gap-4 transition-all rounded-md ${
+                        active ? 'bg-blue-50 /20 shadow-sm ring-1 ring-blue-200 dark:ring-blue-800' : 'border border-transparent hover:bg-canvas dark:hover:bg-gray-700'
                       }`}
                     >
                       <div className={`mt-0.5 shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-                        completed ? 'bg-green-500 border-green-500' : 'border-gray-300 dark:border-gray-600'
+                        completed ? 'bg-green-500 border-green-500' : 'border-gray-300 '
                       }`}>
                         {completed && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>}
                       </div>
                       <div className="flex flex-col">
-                        <span className={`text-sm font-semibold ${active ? 'text-blue-700 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'}`}>
+                        <span className={`text-sm font-semibold ${active ? 'text-blue-700 ' : 'text-gray-700 '}`}>
                           {item.title}
                         </span>
                         <span className="text-xs text-gray-400 mt-1 uppercase tracking-wider">{item.item_type}</span>
@@ -214,13 +214,13 @@ export default function LearningRoom() {
         </div>
       </div>
 
-      <div className="flex-1 p-6 lg:p-10 overflow-y-auto bg-gray-50 dark:bg-gray-900">
+      <div className="flex-1 p-6 lg:p-10 overflow-y-auto bg-canvas ">
         {activeItem ? (
           <div className="max-w-5xl mx-auto">
-            <h1 className="text-3xl font-black mb-8 text-gray-900 dark:text-white">{activeItem.title}</h1>
+            <h1 className="text-3xl font-black mb-8 text-gray-900 ">{activeItem.title}</h1>
             
             {activeItem.item_type === 'video' && (
-              <div className="bg-gray-900 rounded-2xl overflow-hidden shadow-2xl ring-1 ring-gray-900/10 mb-8 relative">
+              <div className="bg-gray-900 rounded-md overflow-hidden shadow-2xl ring-1 ring-gray-900/10 mb-8 relative">
                 <video 
                   ref={videoRef}
                   controls
@@ -237,16 +237,16 @@ export default function LearningRoom() {
             )}
 
             {activeItem.item_type === 'file' && (
-              <div className="bg-white dark:bg-gray-800 p-12 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-sm text-center">
-                <div className="w-24 h-24 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <svg className="w-10 h-10 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+              <div className="bg-white  p-12 rounded-md border border-gray-200  shadow-sm text-center">
+                <div className="w-24 h-24 bg-blue-100 /30 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <svg className="w-10 h-10 text-primary " fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">ไฟล์เอกสารประกอบการเรียน</h3>
+                <h3 className="text-2xl font-bold text-gray-900  mb-6">ไฟล์เอกสารประกอบการเรียน</h3>
                 <a 
                   href={getFullUrl(activeItem.content_url)} 
                   target="_blank" rel="noreferrer"
                   onClick={() => handleMarkProgress(activeItem.id)}
-                  className="inline-flex items-center gap-2 bg-blue-600 text-white px-8 py-4 rounded-xl font-bold shadow-lg hover:bg-blue-700 hover:-translate-y-1 transition-all"
+                  className="inline-flex items-center gap-2 bg-primary text-white px-8 py-4 rounded-md font-bold shadow-lg hover:bg-primary-active hover:-translate-y-1 transition-all"
                 >
                   เปิดอ่านเอกสาร / ดาวน์โหลด
                 </a>
@@ -254,8 +254,8 @@ export default function LearningRoom() {
             )}
 
             {activeItem.item_type === 'exam' && (
-              <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-sm">
-                <h3 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">แบบทดสอบ: {activeItem.title}</h3>
+              <div className="bg-white  p-8 rounded-md border border-gray-200  shadow-sm">
+                <h3 className="text-2xl font-bold mb-6 text-gray-900 ">แบบทดสอบ: {activeItem.title}</h3>
                 {(() => {
                   let questions: any[] = [];
                   try { questions = JSON.parse(activeItem.content_data || '[]'); } catch (e) {}
@@ -294,15 +294,15 @@ export default function LearningRoom() {
                   return (
                     <div className="space-y-8 text-left">
                       {questions.map((q: any, qIdx: number) => (
-                        <div key={qIdx} className="p-6 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700">
-                          <p className="font-bold text-lg mb-4 text-gray-900 dark:text-white">{qIdx + 1}. {q.question_text}</p>
+                        <div key={qIdx} className="p-6 bg-canvas  rounded-md border border-gray-200 ">
+                          <p className="font-bold text-lg mb-4 text-gray-900 ">{qIdx + 1}. {q.question_text}</p>
                           
                           {q.image_url && (
                             <div className="mb-6">
                               {q.image_url.match(/\.(mp4|webm|mov)$/i) ? (
-                                <video src={getFullUrl(q.image_url)} controls className="max-w-full md:max-w-md rounded-lg shadow-sm" />
+                                <video src={getFullUrl(q.image_url)} controls className="max-w-full md:max-w-md rounded-md shadow-sm" />
                               ) : (
-                                <img src={getFullUrl(q.image_url)} alt="Question" className="max-w-full md:max-w-md rounded-lg shadow-sm" />
+                                <img src={getFullUrl(q.image_url)} alt="Question" className="max-w-full md:max-w-md rounded-md shadow-sm" />
                               )}
                             </div>
                           )}
@@ -312,7 +312,7 @@ export default function LearningRoom() {
                               {q.correct_answer && q.correct_answer.trim() !== '' ? (
                                 <>
                                   <textarea
-                                    className="w-full p-4 border border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                    className="w-full p-4 border border-gray-300  rounded-md   focus:ring-2 focus:ring-blue-500 outline-none"
                                     rows={3}
                                     placeholder="พิมพ์คำตอบของคุณที่นี่..."
                                     disabled={examSubmitted}
@@ -320,7 +320,7 @@ export default function LearningRoom() {
                                     onChange={(e) => setExamAnswers({...examAnswers, [qIdx]: e.target.value})}
                                   />
                                   {examSubmitted && (
-                                    <div className="mt-3 p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm font-bold shadow-sm">
+                                    <div className="mt-3 p-3 bg-green-50 border border-green-200 text-green-700 rounded-md text-sm font-bold shadow-sm">
                                         คำตอบที่ถูกต้อง: {q.correct_answer}
                                     </div>
                                   )}
@@ -338,10 +338,10 @@ export default function LearningRoom() {
                                     checked={examAnswers[qIdx] === cIdx}
                                     disabled={examSubmitted}
                                     onChange={() => setExamAnswers({ ...examAnswers, [qIdx]: cIdx })}
-                                    className="w-5 h-5 text-blue-600 focus:ring-blue-500"
+                                    className="w-5 h-5 text-primary focus:ring-blue-500"
                                   />
                                   <span className={`${
-                                    examSubmitted && c.is_correct ? 'text-green-600 font-bold' : 'text-gray-700 dark:text-gray-300'
+                                    examSubmitted && c.is_correct ? 'text-green-600 font-bold' : 'text-gray-700 '
                                   } ${
                                     examSubmitted && examAnswers[qIdx] === cIdx && !c.is_correct ? 'text-red-600 line-through' : ''
                                   }`}>
@@ -355,11 +355,11 @@ export default function LearningRoom() {
                         </div>
                       ))}
                       {!examSubmitted ? (
-                        <button onClick={handleSubmitExam} className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-700 shadow-md transition-all">
+                        <button onClick={handleSubmitExam} className="w-full bg-primary text-white font-bold py-3.5 rounded-md hover:bg-primary-active shadow-md transition-all">
                           ส่งคำตอบ
                         </button>
                       ) : (
-                        <div className="p-6 bg-green-50 border border-green-200 dark:bg-green-900/20 dark:border-green-800 text-green-800 dark:text-green-400 rounded-xl text-center shadow-sm">
+                        <div className="p-6 bg-green-50 border border-green-200 /20  text-green-800  rounded-md text-center shadow-sm">
                           <p className="text-3xl font-black mb-2">ส่งคำตอบเรียบร้อยแล้ว!</p>
                           <p className="font-medium">
                             ได้คะแนนจากส่วนที่ตรวจอัตโนมัติ: {examScore} / {maxScore} ข้อ <br />

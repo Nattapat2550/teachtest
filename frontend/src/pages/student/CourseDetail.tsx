@@ -50,21 +50,21 @@ export default function CourseDetail() {
     }
   };
 
-  if (loading) return <div className="text-center mt-20 dark:text-white">กำลังโหลด...</div>;
-  if (!course) return <div className="text-center mt-20 dark:text-white">ไม่พบคอร์สเรียน</div>;
+  if (loading) return <div className="text-center mt-20 ">กำลังโหลด...</div>;
+  if (!course) return <div className="text-center mt-20 ">ไม่พบคอร์สเรียน</div>;
 
   return (
     <div className="max-w-7xl w-full mx-auto p-6 lg:p-10 mt-8">
-      <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-md border dark:border-gray-700 flex flex-col md:flex-row gap-8">
+      <div className="bg-white  rounded-md p-8 shadow-md border  flex flex-col md:flex-row gap-8">
         <div className="flex-1">
-          <h1 className="text-3xl font-black text-gray-900 dark:text-white mb-4">{course.title}</h1>
-          <p className="text-gray-600 dark:text-gray-300 mb-6">{course.description}</p>
+          <h1 className="text-3xl font-black text-gray-900  mb-4">{course.title}</h1>
+          <p className="text-gray-600  mb-6">{course.description}</p>
           
-          <div className="bg-gray-50 dark:bg-gray-900 p-6 rounded-2xl border dark:border-gray-700">
+          <div className="bg-canvas  p-6 rounded-md border ">
             <div className="flex justify-between items-center mb-4">
-                <div className="text-3xl font-black text-blue-600">฿ {Number(course.price).toLocaleString()}</div>
+                <div className="text-3xl font-black text-primary">฿ {Number(course.price).toLocaleString()}</div>
                 {!isOwned && isAuthenticated && (
-                    <div className="text-sm font-bold text-green-600 dark:text-green-400">ยอดเงินของคุณ: ฿{wallet}</div>
+                    <div className="text-sm font-bold text-green-600 ">ยอดเงินของคุณ: ฿{wallet}</div>
                 )}
             </div>
             
@@ -73,7 +73,7 @@ export default function CourseDetail() {
                 <input 
                   type="text" 
                   placeholder="รหัสโปรโมชั่น (ถ้ามี)"
-                  className="flex-1 p-3 rounded-xl border outline-none dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 p-3 rounded-md border outline-none   focus:ring-2 focus:ring-blue-500"
                   value={promoCode}
                   onChange={e => setPromoCode(e.target.value)}
                 />
@@ -81,7 +81,7 @@ export default function CourseDetail() {
             )}
             
             {errorMsg && (
-              <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-xl text-sm font-bold text-center border border-red-200">
+              <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md text-sm font-bold text-center border border-red-200">
                 {errorMsg}
               </div>
             )}
@@ -89,14 +89,14 @@ export default function CourseDetail() {
             {isOwned ? (
               <button 
                 onClick={() => navigate('/my-learning')}
-                className="w-full py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl shadow-lg transition-all"
+                className="w-full py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-md shadow-lg transition-all"
               >
                 คอร์สนี้เป็นของคุณแล้ว - ไปที่ห้องเรียน
               </button>
             ) : (
               <button 
                 onClick={handleEnroll}
-                className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg transition-all"
+                className="w-full py-4 bg-primary hover:bg-primary-active text-white font-bold rounded-md shadow-lg transition-all"
               >
                 ซื้อคอร์สเรียนนี้
               </button>

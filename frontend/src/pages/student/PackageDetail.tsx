@@ -62,15 +62,15 @@ export default function PackageDetail() {
     }
   };
 
-  if (loading) return <div className="text-center mt-20 dark:text-white">กำลังโหลด...</div>;
-  if (!pkg) return <div className="text-center mt-20 dark:text-white">ไม่พบแพ็กเกจเรียน</div>;
+  if (loading) return <div className="text-center mt-20 ">กำลังโหลด...</div>;
+  if (!pkg) return <div className="text-center mt-20 ">ไม่พบแพ็กเกจเรียน</div>;
 
   return (
     <div className="max-w-7xl w-full mx-auto p-6 lg:p-10 mt-8 mb-20">
-      <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-md border border-gray-200 dark:border-gray-700 flex flex-col md:flex-row gap-8">
+      <div className="bg-white  rounded-md p-8 shadow-md border border-gray-200  flex flex-col md:flex-row gap-8">
         
         <div className="w-full md:w-1/3">
-          <div className="aspect-square bg-gray-100 dark:bg-gray-900 rounded-2xl overflow-hidden shadow-sm relative">
+          <div className="aspect-square bg-gray-100  rounded-md overflow-hidden shadow-sm relative">
              {isOwned && (
                 <div className="absolute top-2 left-2 bg-green-500 text-white text-xs px-3 py-1.5 rounded-full z-10 font-bold shadow-md">
                    เป็นเจ้าของแล้ว
@@ -85,14 +85,14 @@ export default function PackageDetail() {
              แพ็กเกจสุดคุ้มรวม {pkg.course_ids?.length || 0} คอร์ส
           </div>
           {/* เอา text-purple ออก */}
-          <h1 className="text-3xl font-black text-gray-900 dark:text-white mb-4">{pkg.title}</h1>
-          <p className="text-gray-600 dark:text-gray-300 mb-6">{pkg.description}</p>
+          <h1 className="text-3xl font-black text-gray-900  mb-4">{pkg.title}</h1>
+          <p className="text-gray-600  mb-6">{pkg.description}</p>
           
-          <div className="bg-gray-50 dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-700">
+          <div className="bg-canvas  p-6 rounded-md border border-gray-200 ">
             <div className="flex justify-between items-center mb-4">
-                <div className="text-3xl font-black text-blue-600">฿ {Number(pkg.price).toLocaleString()}</div>
+                <div className="text-3xl font-black text-primary">฿ {Number(pkg.price).toLocaleString()}</div>
                 {!isOwned && isAuthenticated && (
-                    <div className="text-sm font-bold text-green-600 dark:text-green-400">ยอดเงินของคุณ: ฿{wallet}</div>
+                    <div className="text-sm font-bold text-green-600 ">ยอดเงินของคุณ: ฿{wallet}</div>
                 )}
             </div>
             
@@ -101,7 +101,7 @@ export default function PackageDetail() {
                 <input 
                   type="text" 
                   placeholder="รหัสโปรโมชั่น (ส่วนลดกลาง)"
-                  className="flex-1 p-3 rounded-xl border outline-none dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 p-3 rounded-md border outline-none   focus:ring-2 focus:ring-blue-500"
                   value={promoCode}
                   onChange={e => setPromoCode(e.target.value)}
                 />
@@ -109,7 +109,7 @@ export default function PackageDetail() {
             )}
             
             {errorMsg && (
-              <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-xl text-sm font-bold text-center border border-red-200">
+              <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md text-sm font-bold text-center border border-red-200">
                 {errorMsg}
               </div>
             )}
@@ -117,14 +117,14 @@ export default function PackageDetail() {
             {isOwned ? (
               <button 
                 onClick={() => navigate('/my-learning')}
-                className="w-full py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl shadow-lg transition-all"
+                className="w-full py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-md shadow-lg transition-all"
               >
                 คุณมีคอร์สครบแล้ว - ไปที่ห้องเรียน
               </button>
             ) : (
               <button 
                 onClick={handleEnrollPackage}
-                className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg transition-all"
+                className="w-full py-4 bg-primary hover:bg-primary-active text-white font-bold rounded-md shadow-lg transition-all"
               >
                 สั่งซื้อแพ็กเกจนี้
               </button>
@@ -134,17 +134,17 @@ export default function PackageDetail() {
       </div>
 
       {pkg.included_courses && pkg.included_courses.length > 0 && (
-        <div className="mt-12 bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-sm border border-gray-200 dark:border-gray-700">
-           <h3 className="text-xl font-bold mb-6 dark:text-gray-900">คอร์สทั้งหมดที่จะได้รับในแพ็กเกจนี้:</h3>
+        <div className="mt-12 bg-white  rounded-md p-8 shadow-sm border border-gray-200 ">
+           <h3 className="text-xl font-bold mb-6 ">คอร์สทั้งหมดที่จะได้รับในแพ็กเกจนี้:</h3>
            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {pkg.included_courses.map((c: any) => (
-                  <div key={c.id} className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-700 hover:border-blue-300 transition-colors">
+                  <div key={c.id} className="flex items-center gap-4 p-4 bg-canvas  rounded-md border border-gray-100  hover:border-blue-300 transition-colors">
                       {c.cover_image ? (
-                        <img src={c.cover_image} alt={c.title} className="w-20 h-14 object-cover rounded-lg shadow-sm" />
+                        <img src={c.cover_image} alt={c.title} className="w-20 h-14 object-cover rounded-md shadow-sm" />
                       ) : (
-                        <div className="w-20 h-14 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+                        <div className="w-20 h-14 bg-gray-200  rounded-md"></div>
                       )}
-                      <span className="font-bold text-gray-800 dark:text-gray-100 line-clamp-2">{c.title}</span>
+                      <span className="font-bold text-gray-800  line-clamp-2">{c.title}</span>
                   </div>
               ))}
            </div>

@@ -40,15 +40,15 @@ const App: React.FC = () => {
 
   if (!serverReady) {
     return (
-      <div className="flex flex-col justify-center items-center min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white p-6 text-center transition-colors duration-300">
+      <div className="flex flex-col justify-center items-center min-h-screen bg-canvas  text-gray-900  p-6 text-center transition-colors duration-300">
         <div className="relative flex justify-center items-center mb-8">
           <div className="absolute animate-ping inline-flex h-20 w-20 rounded-full bg-blue-400 opacity-20"></div>
           {/* แก้ไข Spinner เพื่อไม่ให้เกิด border-accent-on-rounded */}
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 border-t-blue-600 dark:border-gray-700 dark:border-t-blue-400"></div>
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 border-t-blue-600  "></div>
         </div>
         <h1 className="text-2xl md:text-3xl font-black mb-3">TeachTest</h1>
-        <h2 className="text-xl font-bold mb-3 text-blue-600 dark:text-blue-400">กำลังเชื่อมต่อกับเซิร์ฟเวอร์...</h2>
-        <p className="text-gray-500 dark:text-gray-400 max-w-md text-sm md:text-base font-medium">
+        <h2 className="text-xl font-bold mb-3 text-primary ">กำลังเชื่อมต่อกับเซิร์ฟเวอร์...</h2>
+        <p className="text-gray-500  max-w-md text-sm md:text-base font-medium">
           {wakingUp 
             ? "กำลังปลุกระบบฐานข้อมูลและเซิร์ฟเวอร์ (อาจใช้เวลา 30-50 วินาทีในครั้งแรกเนื่องจากระบบประหยัดพลังงาน) กรุณารอสักครู่ ⏳" 
             : "ระบบกำลังเตรียมความพร้อม..."}

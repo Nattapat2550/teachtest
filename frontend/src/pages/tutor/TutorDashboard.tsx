@@ -271,21 +271,21 @@ export default function TutorDashboard() {
     finally { setUploading(false); setUploadProgress(0); }
   };
 
-  const fileInputClass = "mb-4 block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-white focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-bold file:bg-gray-200 file:text-gray-900 hover:file:bg-gray-300 dark:file:bg-gray-600 dark:file:text-white transition-all";
+  const fileInputClass = "mb-4 block w-full text-sm text-gray-900 border border-gray-300 rounded-md cursor-pointer bg-canvas  focus:outline-none   dark:placeholder-gray-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-bold file:bg-gray-200 file:text-gray-900 hover:file:bg-gray-300 dark:file:bg-gray-600 dark:file:text-white transition-all";
 
   return (
     <div className="max-w-7xl mx-auto p-6 mt-8">
-      <h1 className="text-3xl font-black mb-6 dark:text-white">Workspace: จัดการระบบการเรียนการสอน</h1>
+      <h1 className="text-3xl font-black mb-6 ">Workspace: จัดการระบบการเรียนการสอน</h1>
       
       {/* Tabs Menu */}
-      <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700 mb-8 overflow-x-auto">
-        <button onClick={()=>setActiveTab('manage_courses')} className={`py-3 px-6 font-bold whitespace-nowrap ${activeTab==='manage_courses' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`}>จัดการคอร์สเรียน</button>
-        <button onClick={()=>setActiveTab('content')} className={`py-3 px-6 font-bold whitespace-nowrap ${activeTab==='content' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`}>จัดการเนื้อหา & โปรโมโค้ด</button>
-        <button onClick={()=>setActiveTab('packages')} className={`py-3 px-6 font-bold whitespace-nowrap ${activeTab==='packages' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`}>จัดแพ็กเกจรวมคอร์ส</button>
-        <button onClick={()=>setActiveTab('analytics')} className={`py-3 px-6 font-bold whitespace-nowrap ${activeTab==='analytics' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`}>📊 สถิติและข้อมูลหลังบ้าน</button>
+      <div className="flex gap-2 border-b border-gray-200  mb-8 overflow-x-auto">
+        <button onClick={()=>setActiveTab('manage_courses')} className={`py-3 px-6 font-bold whitespace-nowrap ${activeTab==='manage_courses' ? 'text-primary border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700 '}`}>จัดการคอร์สเรียน</button>
+        <button onClick={()=>setActiveTab('content')} className={`py-3 px-6 font-bold whitespace-nowrap ${activeTab==='content' ? 'text-primary border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700 '}`}>จัดการเนื้อหา & โปรโมโค้ด</button>
+        <button onClick={()=>setActiveTab('packages')} className={`py-3 px-6 font-bold whitespace-nowrap ${activeTab==='packages' ? 'text-primary border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700 '}`}>จัดแพ็กเกจรวมคอร์ส</button>
+        <button onClick={()=>setActiveTab('analytics')} className={`py-3 px-6 font-bold whitespace-nowrap ${activeTab==='analytics' ? 'text-primary border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700 '}`}>📊 สถิติและข้อมูลหลังบ้าน</button>
 
         {role === 'admin' && (
-          <button onClick={()=>setActiveTab('global_promos')} className={`py-3 px-6 font-bold whitespace-nowrap ${activeTab==='global_promos' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`}>โค้ดส่วนลดกลาง (Admin)</button>
+          <button onClick={()=>setActiveTab('global_promos')} className={`py-3 px-6 font-bold whitespace-nowrap ${activeTab==='global_promos' ? 'text-primary border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700 '}`}>โค้ดส่วนลดกลาง (Admin)</button>
         )}
       </div>
 
