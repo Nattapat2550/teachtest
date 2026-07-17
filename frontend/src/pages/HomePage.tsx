@@ -41,7 +41,7 @@ export default function HomePage() {
             <p className="text-lg md:text-2xl text-gray-500  font-medium max-w-2xl mx-auto md:mx-0 mb-10 tracking-tight">
               อัปสกิลของคุณกับคอร์สเรียนคุณภาพ ติดตามความคืบหน้าได้ทุกที่ทุกเวลา
             </p>
-            <Link to="/courses" className="inline-flex items-center gap-2 bg-black  text-white  font-semibold py-4 px-10 rounded-full hover:scale-105 transition-transform duration-300">
+            <Link to="/courses" className="inline-flex items-center gap-2 bg-zinc-950  text-white  font-semibold py-4 px-10 rounded-full hover:scale-105 transition-transform duration-300">
               ดูคอร์สเรียนทั้งหมด <ChevronRight size={20} />
             </Link>
           </div>
@@ -97,7 +97,7 @@ export default function HomePage() {
               <Link to={`/courses/${c.id}`} key={c.id} className="group apple-glass rounded-[2rem] overflow-hidden hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 flex flex-col">
                 <div className="h-56 bg-gray-100  overflow-hidden relative">
                   {c.cover_image ? <img src={c.cover_image} alt="Cover" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"/> : <div className="w-full h-full flex items-center justify-center text-gray-400">No Image</div>}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-500"></div>
+                  <div className="absolute inset-0 bg-zinc-950/0 group-hover:bg-zinc-950/10 transition-colors duration-500"></div>
                 </div>
                 <div className="p-6 flex flex-col flex-1 bg-white/50 /50">
                   <h3 className="text-xl font-semibold mb-2 text-gray-900  line-clamp-2 tracking-tight">{c.title}</h3>
