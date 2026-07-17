@@ -2,12 +2,28 @@
 
 @variant dark (&:where(.dark, .dark *));
 
+:root {
+  --theme-primary: #0066cc;
+  --theme-primary-hover: #0071e3;
+  --theme-canvas: #ffffff;
+  --theme-ink: #1d1d1f;
+  --theme-muted: #7a7a7a;
+}
+
+.dark {
+  --theme-primary: #2997ff;
+  --theme-primary-hover: #54a9ff;
+  --theme-canvas: #000000;
+  --theme-ink: #f5f5f7;
+  --theme-muted: #86868b;
+}
+
 @theme {
-  --color-primary: #0066cc;
-  --color-primary-hover: #0071e3;
-  --color-canvas: #ffffff;
-  --color-ink: #1d1d1f;
-  --color-muted: #7a7a7a;
+  --color-primary: var(--theme-primary);
+  --color-primary-hover: var(--theme-primary-hover);
+  --color-canvas: var(--theme-canvas);
+  --color-ink: var(--theme-ink);
+  --color-muted: var(--theme-muted);
   
   --font-sans: "SF Pro Display", "SF Pro Text", -apple-system, sans-serif;
 
@@ -18,7 +34,7 @@
 
 @layer base {
   body {
-    @apply bg-canvas text-ink antialiased;
+    @apply bg-canvas text-ink antialiased transition-colors duration-300;
     font-family: var(--font-sans);
     letter-spacing: -0.015em;
   }
@@ -26,6 +42,7 @@
 
 /* SweetAlert2 Apple Styles */
 .swal2-popup {
+  background-color: var(--color-canvas) !important;
   border-radius: var(--radius-md) !important;
   font-family: var(--font-sans) !important;
   color: var(--color-ink) !important;
@@ -37,6 +54,7 @@
 }
 .swal2-confirm {
   background-color: var(--color-primary) !important;
+  color: white !important;
   border-radius: var(--radius-full) !important;
   font-weight: 400 !important;
   padding: 12px 24px !important;
